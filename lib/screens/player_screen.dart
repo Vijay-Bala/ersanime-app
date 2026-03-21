@@ -369,10 +369,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Black in fullscreen so no white bleeds through behind the WebView
-      backgroundColor: _isFullscreen ? Colors.black : AppTheme.darkBg,
-      body: _isFullscreen ? _buildFullscreen() : _buildPortrait(),
+    return PopScope(
+      // When fullscreen, back gesture exits fullscreen instead of popping the page
+      canPop: !_isFullscreen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _isFullscreen) _toggleFullscreen();
+      },
+      child: Scaffold(
+        backgroundColor: _isFullscreen ? Colors.black : AppTheme.darkBg,
+        body: _isFullscreen ? _buildFullscreen() : _buildPortrait(),
+      ),
     );
   }
 
@@ -417,67 +423,98 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildFullscreen() {
-    return GestureDetector(
-      onTap: _toggleControls,
-      child: Container(
-        color: Colors.black, // explicit black — prevents any white flash
-        child: Stack(
-          children: [
-            Positioned.fill(child: _webViewWidget),
-            if (_loading || _autoAdvancing) _buildOverlay(),
-            AnimatedOpacity(
-              opacity: _controlsVisible ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 250),
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: Stack(
-                  children: [
-                    // Back button top-left
-                    Positioned(
-                      top: 16.h,
-                      left: 16.w,
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                            size: 20.sp,
-                          ),
+    return Container(
+      color: Colors.black,
+      child: Stack(
+        children: [
+          Positioned.fill(child: _webViewWidget),
+          if (_loading || _autoAdvancing) _buildOverlay(),
+
+          // Controls — always on top, buttons use HitTestBehavior.opaque
+          // so they intercept taps before the WebView sees them
+          AnimatedOpacity(
+            opacity: _controlsVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 250),
+            child: IgnorePointer(
+              ignoring: !_controlsVisible,
+              child: Stack(
+                children: [
+                  // Tap zone to hide controls (semi-transparent, won't affect WebView
+                  // because IgnorePointer is off when controls are visible)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleControls,
+                      behavior: HitTestBehavior.translucent,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                  // Exit fullscreen button — top left
+                  Positioned(
+                    top: 16.h,
+                    left: 16.w,
+                    child: GestureDetector(
+                      onTap: _toggleFullscreen,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fullscreen_exit_rounded,
+                              color: Colors.white,
+                              size: 18.sp,
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'Exit Fullscreen',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    // Exit fullscreen top-right
-                    Positioned(
-                      top: 16.h,
-                      right: 16.w,
-                      child: GestureDetector(
-                        onTap: _toggleFullscreen,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.fullscreen_exit,
-                            color: Colors.white,
-                            size: 24.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Show controls button — always visible small dot when controls hidden
+          if (!_controlsVisible && !_loading && !_autoAdvancing)
+            Positioned(
+              top: 12.h,
+              left: 12.w,
+              child: GestureDetector(
+                onTap: _showControls,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: Colors.black38,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Icon(
+                    Icons.touch_app_rounded,
+                    color: Colors.white38,
+                    size: 16.sp,
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -489,18 +526,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           _webViewWidget,
           if (_loading || _autoAdvancing) _buildOverlay(),
+          // Fullscreen button — sits ON TOP of WebView, outside its touch area
+          // Uses Positioned so it doesn't cover the whole WebView
           Positioned(
             bottom: 8.h,
             right: 8.w,
             child: GestureDetector(
               onTap: _toggleFullscreen,
+              behavior: HitTestBehavior.opaque,
               child: Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.white24),
                 ),
-                child: Icon(Icons.fullscreen, color: Colors.white, size: 20.sp),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 18.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'Fullscreen',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
