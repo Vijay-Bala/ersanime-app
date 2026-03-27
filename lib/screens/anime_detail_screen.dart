@@ -84,7 +84,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
             )
           : CustomScrollView(
               slivers: [
-                // ── Banner ────────────────────────────────────────────────────
                 SliverAppBar(
                   expandedHeight: 240.h,
                   pinned: true,
@@ -123,7 +122,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                         : null,
                   ),
                   actions: [
-                    // Status picker button
                     if (anime != null) _StatusPickerButton(animeId: anime.id),
                     SizedBox(width: 4.w),
                   ],
@@ -134,13 +132,11 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Poster + Info ───────────────────────────────────
                         Padding(
                           padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 0),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Poster
                               Container(
                                 width: 110.w,
                                 height: 160.h,
@@ -168,15 +164,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                          anime.title,
-                                          style: TextStyle(
-                                            color: AppTheme.textPrimary,
-                                            fontSize: 17.sp,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                          overflow: TextOverflow.visible,
-                                        )
+                                    _AnimeTitleWidget(title: anime.title)
                                         .animate()
                                         .fadeIn(delay: 80.ms)
                                         .slideX(begin: 0.05),
@@ -214,7 +202,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                                           ),
                                       ],
                                     ).animate().fadeIn(delay: 120.ms),
-                                    // Current list status
                                     if (watchlist.getStatus(anime.id) !=
                                         null) ...[
                                       SizedBox(height: 8.h),
@@ -259,7 +246,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
 
                         SizedBox(height: 14.h),
 
-                        // ── Play button ─────────────────────────────────────
                         if (_episodes.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -302,7 +288,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
 
                         SizedBox(height: 14.h),
 
-                        // ── Next episode countdown ──────────────────────────
                         if (anime.nextAiringEpisode != null)
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -311,7 +296,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                             ),
                           ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.05),
 
-                        // ── Genres ──────────────────────────────────────────
                         if (anime.genres.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
@@ -370,7 +354,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                             ),
                           ),
 
-                        // ── Studios ─────────────────────────────────────────
                         if ((anime.studios ?? []).isNotEmpty)
                           Padding(
                             padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
@@ -383,7 +366,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                             ),
                           ),
 
-                        // ── Synopsis ─────────────────────────────────────────
                         if (anime.description != null)
                           Padding(
                             padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
@@ -405,7 +387,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                             ),
                           ),
 
-                        // ── Episodes ─────────────────────────────────────────
                         if (_loading)
                           const Padding(
                             padding: EdgeInsets.all(24),
@@ -459,7 +440,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                           ),
                         ],
 
-                        // ── Recommendations ──────────────────────────────────
                         if ((anime.recommendations ?? []).isNotEmpty) ...[
                           Padding(
                             padding: EdgeInsets.fromLTRB(
@@ -527,7 +507,123 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
   }
 }
 
-// ── Next episode countdown card ───────────────────────────────────────────────
+class _AnimeTitleWidget extends StatelessWidget {
+  final String title;
+  const _AnimeTitleWidget({required this.title});
+
+  static const int _maxChars = 40;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLong = title.length > _maxChars;
+    if (!isLong) {
+      return Text(
+        title,
+        style: TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 17.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: () => _showFullTitle(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          SizedBox(width: 4.w),
+          GestureDetector(
+            onTap: () => _showFullTitle(context),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+              ),
+              child: Text(
+                'more',
+                style: TextStyle(
+                  color: AppTheme.primaryLight,
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullTitle(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Full Title',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                title,
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NextEpisodeCard extends StatefulWidget {
   final NextAiringEpisode next;
   const _NextEpisodeCard({required this.next});
@@ -664,8 +760,7 @@ class _NextEpisodeCardState extends State<_NextEpisodeCard> {
   }
 }
 
-// ── Episode grid ──────────────────────────────────────────────────────────────
-class _EpisodeGrid extends StatelessWidget {
+class _EpisodeGrid extends StatefulWidget {
   final List<Episode> episodes;
   final int animeId;
   final ValueChanged<Episode> onPlay;
@@ -676,58 +771,131 @@ class _EpisodeGrid extends StatelessWidget {
   });
 
   @override
+  State<_EpisodeGrid> createState() => _EpisodeGridState();
+}
+
+class _EpisodeGridState extends State<_EpisodeGrid> {
+  static const int _pageSize = 50;
+  int _currentPage = 0;
+
+  int get _totalPages => (widget.episodes.length / _pageSize).ceil();
+
+  List<Episode> get _pageEpisodes {
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, widget.episodes.length);
+    return widget.episodes.sublist(start, end);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final watchlist = context.watch<WatchlistService>();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 6,
-          childAspectRatio: 1.1,
-          crossAxisSpacing: 6.w,
-          mainAxisSpacing: 6.h,
-        ),
-        itemCount: episodes.length,
-        itemBuilder: (ctx, i) {
-          final ep = episodes[i];
-          final isWatched = watchlist.isWatched(animeId, ep.number);
-          return GestureDetector(
-            onTap: () => onPlay(ep),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isWatched
-                    ? AppTheme.primary.withOpacity(0.15)
-                    : AppTheme.darkCard,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(
-                  color: isWatched
-                      ? AppTheme.primary.withOpacity(0.4)
-                      : AppTheme.darkBorder,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  '${ep.number}',
-                  style: TextStyle(
-                    color: isWatched
-                        ? AppTheme.primaryLight
-                        : AppTheme.textPrimary,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+    final pageEps = _pageEpisodes;
+
+    return Column(
+      children: [
+        if (_totalPages > 1)
+          Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(_totalPages, (i) {
+                  final startIdx = i * _pageSize;
+                  final endIdx =
+                      ((i + 1) * _pageSize).clamp(0, widget.episodes.length) -
+                      1;
+                  final startEp = widget.episodes[startIdx].number;
+                  final endEp = widget.episodes[endIdx].number;
+                  final isSelected = i == _currentPage;
+                  return Padding(
+                    padding: EdgeInsets.only(right: 6.w),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _currentPage = i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 6.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : AppTheme.darkCard,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.primary
+                                : AppTheme.darkBorder,
+                          ),
+                        ),
+                        child: Text(
+                          '$startEp–$endEp',
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppTheme.textSecondary,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
             ),
-          ).animate(delay: (i * 10).ms).fadeIn(duration: 200.ms);
-        },
-      ),
+          ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 6,
+              childAspectRatio: 1.1,
+              crossAxisSpacing: 6.w,
+              mainAxisSpacing: 6.h,
+            ),
+            itemCount: pageEps.length,
+            itemBuilder: (ctx, i) {
+              final ep = pageEps[i];
+              final isWatched = watchlist.isWatched(widget.animeId, ep.number);
+              return GestureDetector(
+                onTap: () => widget.onPlay(ep),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isWatched
+                        ? AppTheme.primary.withOpacity(0.15)
+                        : AppTheme.darkCard,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: isWatched
+                          ? AppTheme.primary.withOpacity(0.4)
+                          : AppTheme.darkBorder,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${ep.number}',
+                      style: TextStyle(
+                        color: isWatched
+                            ? AppTheme.primaryLight
+                            : AppTheme.textPrimary,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate(delay: (i * 10).ms).fadeIn(duration: 200.ms);
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-// ── Status picker button ──────────────────────────────────────────────────────
 class _StatusPickerButton extends StatelessWidget {
   final int animeId;
   const _StatusPickerButton({required this.animeId});
@@ -790,7 +958,6 @@ class _StatusPickerButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle
               Container(
                 width: 36.w,
                 height: 4.h,
@@ -863,7 +1030,6 @@ class _StatusPickerButton extends StatelessWidget {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 class _Badge extends StatelessWidget {
   final String text;
   final Color color;

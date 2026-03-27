@@ -81,7 +81,7 @@ class _AnimeCardState extends State<AnimeCard> {
                             ),
                           ),
                         ),
-                        // Bottom gradient
+
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -97,7 +97,7 @@ class _AnimeCardState extends State<AnimeCard> {
                             ),
                           ),
                         ),
-                        // Rating
+
                         if (widget.anime.rating != null)
                           Positioned(
                             top: 5.h,
@@ -124,7 +124,7 @@ class _AnimeCardState extends State<AnimeCard> {
                               ),
                             ),
                           ),
-                        // Ongoing badge
+
                         if (widget.anime.status == 'Ongoing')
                           Positioned(
                             top: 5.h,

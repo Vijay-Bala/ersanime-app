@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // ── Colors (matching website CSS variables) ────────────────────────────────
   static const primary = Color(0xFFBF00FF);
   static const primaryLight = Color(0xFFD44DFF);
   static const primaryDark = Color(0xFF8C00CC);
@@ -87,7 +86,6 @@ class AppTheme {
   );
 }
 
-// Neon glow box decoration helper
 BoxDecoration neonCard({
   Color glowColor = AppTheme.primary,
   double glowIntensity = 0.2,

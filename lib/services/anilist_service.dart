@@ -19,7 +19,10 @@ const _animeFields = '''
   nextAiringEpisode { episode airingAt timeUntilAiring }
 ''';
 
-Future<Map<String, dynamic>> _gql(String query, [Map<String, dynamic>? variables]) async {
+Future<Map<String, dynamic>> _gql(
+  String query, [
+  Map<String, dynamic>? variables,
+]) async {
   final res = await http.post(
     Uri.parse(_url),
     headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
@@ -28,8 +31,6 @@ Future<Map<String, dynamic>> _gql(String query, [Map<String, dynamic>? variables
   final json = jsonDecode(res.body) as Map<String, dynamic>;
   return json['data'] as Map<String, dynamic>;
 }
-
-// ── Home ──────────────────────────────────────────────────────────────────────
 
 Future<HomeData> getHomeData() async {
   final data = await _gql('''
@@ -56,10 +57,9 @@ Future<HomeData> getHomeData() async {
   );
 }
 
-// ── Detail ────────────────────────────────────────────────────────────────────
-
 Future<Anime> getAnimeDetail(int id) async {
-  final data = await _gql('''
+  final data = await _gql(
+    '''
     query(\$id:Int!) {
       Media(id:\$id,type:ANIME) {
         $_animeFields
@@ -76,86 +76,103 @@ Future<Anime> getAnimeDetail(int id) async {
         }
       }
     }
-  ''', {'id': id});
+  ''',
+    {'id': id},
+  );
   return Anime.fromJson(data['Media'] as Map<String, dynamic>);
 }
 
-// ── Search ────────────────────────────────────────────────────────────────────
-
 Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
-  final data = await _gql('''
+  final data = await _gql(
+    '''
     query(\$search:String!,\$page:Int!) {
       Page(page:\$page,perPage:20) {
         media(search:\$search,type:ANIME,isAdult:false,sort:SEARCH_MATCH) { $_animeFields }
       }
     }
-  ''', {'search': query, 'page': page});
+  ''',
+    {'search': query, 'page': page},
+  );
   return _mapList(data['Page']['media']);
 }
 
 Future<List<Anime>> searchByGenre(String genre, {int page = 1}) async {
-  final data = await _gql('''
+  final data = await _gql(
+    '''
     query(\$genre:String!,\$page:Int!) {
       Page(page:\$page,perPage:40) {
         media(genre:\$genre,type:ANIME,isAdult:false,sort:POPULARITY_DESC) { $_animeFields }
       }
     }
-  ''', {'genre': genre, 'page': page});
+  ''',
+    {'genre': genre, 'page': page},
+  );
   return _mapList(data['Page']['media']);
 }
 
-// ── Episodes ──────────────────────────────────────────────────────────────────
-
 Future<List<Episode>> getEpisodes(Anime anime) async {
+  final knownTotal = anime.episodes;
+
+  if (knownTotal != null && knownTotal > 0) {
+    return _generateEpisodes(knownTotal, anime.title);
+  }
+
+  if (anime.nextAiringEpisode != null) {
+    final airedCount = anime.nextAiringEpisode!.episode - 1;
+    if (airedCount > 0) {
+      return _generateEpisodes(airedCount, anime.title);
+    }
+  }
+
   try {
-    final data = await _gql('''
+    final data = await _gql(
+      '''
       query(\$id:Int!) {
         Media(id:\$id,type:ANIME) {
           episodes
-          airingSchedule(notYetAired:false, perPage:150) {
-            nodes { episode airingAt }
-          }
+          nextAiringEpisode { episode }
         }
       }
-    ''', {'id': anime.id});
+    ''',
+      {'id': anime.id},
+    );
 
     final media = data['Media'] as Map<String, dynamic>?;
-    if (media == null) return _fallbackEpisodes(anime);
-
-    final aired = (media['airingSchedule']?['nodes'] as List<dynamic>?) ?? [];
-    final slug = _toSlug(anime.title);
-
-    if (aired.isNotEmpty) {
-      final sorted = aired
-          .map((e) => e as Map<String, dynamic>)
-          .where((e) => (e['episode'] as int) >= 1)
-          .toList()
-        ..sort((a, b) => (a['episode'] as int).compareTo(b['episode'] as int));
-      return sorted.map((e) => Episode(
-        id: '$slug-episode-${e['episode']}',
-        number: e['episode'] as int,
-        airingAt: e['airingAt'] as int?,
-      )).toList();
+    if (media != null) {
+      final fetchedTotal = media['episodes'] as int?;
+      if (fetchedTotal != null && fetchedTotal > 0) {
+        return _generateEpisodes(fetchedTotal, anime.title);
+      }
+      final nextEp =
+          (media['nextAiringEpisode'] as Map<String, dynamic>?)?['episode']
+              as int?;
+      if (nextEp != null && nextEp > 1) {
+        return _generateEpisodes(nextEp - 1, anime.title);
+      }
     }
-    return _fallbackEpisodes(anime);
-  } catch (_) {
-    return _fallbackEpisodes(anime);
-  }
+  } catch (_) {}
+
+  return [];
 }
 
-List<Episode> _fallbackEpisodes(Anime anime) {
-  final count = anime.episodes;
-  if (count == null || count <= 0) return [];
-  final slug = _toSlug(anime.title);
-  return List.generate(count, (i) => Episode(
-    id: '$slug-episode-${i + 1}',
-    number: i + 1,
-  ));
+List<Episode> _generateEpisodes(int count, String title) {
+  final slug = _toSlug(title);
+  return List.generate(
+    count,
+    (i) => Episode(id: '$slug-episode-${i + 1}', number: i + 1),
+  );
 }
 
-// ── Embed URLs (VidNest servers) ──────────────────────────────────────────────
-
-const _vidnestServers = ['', 'sigma', 'alfa', 'beta', 'gama', 'hexa', 'delta', 'lamda'];
+const _vidnestServers = [
+  '',
+  'sigma',
+  'alfa',
+  'beta',
+  'gama',
+  'hexa',
+  'delta',
+  'lamda',
+];
 
 List<String> getEmbedUrls(int anilistId, int episode, {bool dub = false}) {
   final sub = dub ? 'dub' : 'sub';
@@ -169,10 +186,9 @@ List<String> getEmbedUrls(int anilistId, int episode, {bool dub = false}) {
   ];
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-List<Anime> _mapList(dynamic list) =>
-    (list as List<dynamic>? ?? []).map((m) => Anime.fromJson(m as Map<String, dynamic>)).toList();
+List<Anime> _mapList(dynamic list) => (list as List<dynamic>? ?? [])
+    .map((m) => Anime.fromJson(m as Map<String, dynamic>))
+    .toList();
 
 String _toSlug(String title) => title
     .toLowerCase()

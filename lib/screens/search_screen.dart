@@ -8,7 +8,6 @@ import '../widgets/anime_card.dart';
 import '../widgets/skeleton.dart';
 import '../theme/app_theme.dart';
 
-// ── All AniList genres ────────────────────────────────────────────────────────
 const kAllGenres = [
   'Action',
   'Adventure',
@@ -65,7 +64,7 @@ class _SearchScreenState extends State<SearchScreen>
   final _focusNode = FocusNode();
 
   List<Anime> _results = [];
-  List<Anime> _suggestions = []; // live suggestions (first 5 results)
+  List<Anime> _suggestions = [];
   bool _loading = false;
   bool _showSuggestions = false;
   String _lastQuery = '';
@@ -135,14 +134,12 @@ class _SearchScreenState extends State<SearchScreen>
     try {
       List<Anime> results;
       if (_selectedGenres.isNotEmpty && q.isEmpty) {
-        // Genre-only: fetch each genre and merge unique results
         final futures = _selectedGenres.map((g) => searchByGenre(g));
         final all = await Future.wait(futures);
         final seen = <int>{};
         results = all.expand((l) => l).where((a) => seen.add(a.id)).toList();
         results.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
       } else if (_selectedGenres.isNotEmpty && q.isNotEmpty) {
-        // Both: text search then filter by selected genres client-side
         results = await searchAnime(q);
         results = results
             .where((a) => _selectedGenres.any((g) => a.genres.contains(g)))
@@ -169,7 +166,7 @@ class _SearchScreenState extends State<SearchScreen>
         _selectedGenres.add(g);
       }
     });
-    // Auto search when genre changes
+
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), _runSearch);
   }
@@ -237,14 +234,11 @@ class _SearchScreenState extends State<SearchScreen>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Genre chips ───────────────────────────────────────────────────
           _GenreChips(selected: _selectedGenres, onToggle: _toggleGenre),
 
-          // ── Results / suggestions / empty ─────────────────────────────────
           Expanded(
             child: Stack(
               children: [
-                // Main results
                 _loading
                     ? const AnimeGridSkeleton()
                     : _results.isEmpty
@@ -265,7 +259,6 @@ class _SearchScreenState extends State<SearchScreen>
                             AnimeCard(anime: _results[i], index: i),
                       ),
 
-                // ── Suggestion dropdown ───────────────────────────────────
                 if (_showSuggestions)
                   Positioned(
                     top: 0,
@@ -398,7 +391,6 @@ class _SearchScreenState extends State<SearchScreen>
   }
 }
 
-// ── Genre chip bar ────────────────────────────────────────────────────────────
 class _GenreChips extends StatelessWidget {
   final Set<String> selected;
   final ValueChanged<String> onToggle;
@@ -466,7 +458,6 @@ class _GenreChips extends StatelessWidget {
   }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final bool hasGenres;
   final String query;

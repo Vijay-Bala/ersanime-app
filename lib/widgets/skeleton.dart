@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 import '../theme/app_theme.dart';
 
-// Base shimmer wrapper
 class SkeletonShimmer extends StatelessWidget {
   final Widget child;
   const SkeletonShimmer({super.key, required this.child});
@@ -19,7 +18,6 @@ class SkeletonShimmer extends StatelessWidget {
   }
 }
 
-// Box skeleton
 class SkeletonBox extends StatelessWidget {
   final double? width;
   final double height;
@@ -44,7 +42,6 @@ class SkeletonBox extends StatelessWidget {
   }
 }
 
-// Anime card skeleton
 class AnimeCardSkeleton extends StatelessWidget {
   const AnimeCardSkeleton({super.key});
 
@@ -88,7 +85,6 @@ class AnimeCardSkeleton extends StatelessWidget {
   }
 }
 
-// Grid of skeleton cards
 class AnimeGridSkeleton extends StatelessWidget {
   final int count;
   const AnimeGridSkeleton({super.key, this.count = 9});
@@ -111,7 +107,6 @@ class AnimeGridSkeleton extends StatelessWidget {
   }
 }
 
-// Horizontal row skeleton
 class AnimeRowSkeleton extends StatelessWidget {
   const AnimeRowSkeleton({super.key});
 
@@ -146,7 +141,6 @@ class AnimeRowSkeleton extends StatelessWidget {
   }
 }
 
-// Detail screen skeleton
 class AnimeDetailSkeleton extends StatelessWidget {
   const AnimeDetailSkeleton({super.key});
 
@@ -158,7 +152,6 @@ class AnimeDetailSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner
             SkeletonBox(width: double.infinity, height: 240.h, radius: 0),
             Padding(
               padding: EdgeInsets.all(16.w),

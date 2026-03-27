@@ -43,9 +43,8 @@ class WatchlistService extends ChangeNotifier {
   static const _statusKey = 'watchlist_status_v2';
   static const _historyKey = 'watch_history';
 
-  // animeId -> status
   Map<int, WatchStatus> _statusMap = {};
-  // 'animeId-ep' -> timestamp
+
   Map<String, int> _history = {};
 
   Map<int, WatchStatus> get statusMap => _statusMap;
@@ -76,8 +75,6 @@ class WatchlistService extends ChangeNotifier {
     );
   }
 
-  // ── Status ──────────────────────────────────────────────────────────────────
-
   WatchStatus? getStatus(int id) => _statusMap[id];
   bool isInAnyList(int id) => _statusMap.containsKey(id);
   bool isFavourite(int id) => _statusMap[id] == WatchStatus.favourite;
@@ -103,8 +100,6 @@ class WatchlistService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Watch history ───────────────────────────────────────────────────────────
-
   Future<void> markWatched(int animeId, int episode) async {
     _history['$animeId-$episode'] = DateTime.now().millisecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
@@ -126,6 +121,5 @@ class WatchlistService extends ChangeNotifier {
     return last;
   }
 
-  // Keep legacy isInWatchlist for compatibility
   bool isInWatchlist(int id) => isInAnyList(id);
 }

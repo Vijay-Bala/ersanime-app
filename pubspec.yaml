@@ -21,6 +21,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_screenutil: ^5.9.3
   flutter_animate: ^4.5.2
+  android_pip: ^2.0.2
 
 dev_dependencies:
   flutter_test:
@@ -32,7 +33,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: false
+  ios: true
   image_path: "assets/icon.png"
   adaptive_icon_background: "#050508"
   adaptive_icon_foreground: "assets/icon_foreground.png"
@@ -42,7 +43,7 @@ flutter_native_splash:
   color: "#050508"
   image: assets/splash.png
   android: true
-  ios: false
+  ios: true
   android_12:
     color: "#050508"
     image: assets/splash.png

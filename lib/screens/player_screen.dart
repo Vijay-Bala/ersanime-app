@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -9,14 +10,26 @@ import '../services/watchlist_service.dart';
 import '../theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
-// Spoof a real Chrome Android UA — without this VidNest blocks Flutter WebViews in release mode
-const _kUserAgent =
-    'Mozilla/5.0 (Linux; Android 13; Pixel 7) '
-    'AppleWebKit/537.36 (KHTML, like Gecko) '
-    'Chrome/124.0.0.0 Mobile Safari/537.36';
+// Platform-aware UA: iOS needs a real Safari UA — sending an Android Chrome UA
+// on iOS WebKit causes VidNest to serve an ad-heavy page variant.
+final String _kUserAgent = Platform.isIOS
+    ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+          'AppleWebKit/605.1.15 (KHTML, like Gecko) '
+          'Version/17.0 Mobile/15E148 Safari/604.1'
+    : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) '
+          'AppleWebKit/537.36 (KHTML, like Gecko) '
+          'Chrome/124.0.0.0 Mobile Safari/537.36';
 
-// How long to wait before trying the next source.
-// Only kicks in if NO console/JS activity is detected from the page.
+// Allowlist: only these hosts may trigger a top-level navigation.
+// All ad redirects, trackers, and app-store links are blocked.
+const _kAllowedHosts = {'vidnest.fun', 'nhdapi.xyz'};
+
+bool _isAllowedNavigation(WebUri? uri) {
+  if (uri == null) return false;
+  final host = uri.host.toLowerCase();
+  return _kAllowedHosts.any((h) => host == h || host.endsWith('.$h'));
+}
+
 const _kAutoAdvanceDelay = Duration(seconds: 12);
 
 class PlayerScreen extends StatefulWidget {
@@ -41,25 +54,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
   int _sourceIndex = 0;
   List<String> _sources = [];
 
-  // _loading = spinner shown; separate from auto-advance
   bool _loading = true;
 
-  // Auto-advance state — completely separate from _loading
   bool _autoAdvancing = false;
   int _countdown = _kAutoAdvanceDelay.inSeconds;
   Timer? _advanceTimer;
   Timer? _countdownTicker;
 
-  // Whether the current page has shown any real JS activity
-  // (meaning the player is alive and we should NOT auto-advance)
   bool _playerAlive = false;
 
   bool _isFullscreen = false;
   bool _controlsVisible = true;
   Timer? _controlsHideTimer;
 
-  // The WebView widget is stored as a field so it's never rebuilt
-  // rebuilding _buildWebView() created a new WebView on every setState
   late Widget _webViewWidget;
   InAppWebViewController? _webCtrl;
 
@@ -77,8 +84,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
-  // ── Sources ──────────────────────────────────────────────────────────────────
-
   void _buildSources() {
     _sources = getEmbedUrls(widget.anime.id, _currentEp.number, dub: _isDub);
     _sourceIndex = 0;
@@ -87,20 +92,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   String get _currentUrl => _sources[_sourceIndex];
 
-  // ── Auto-advance logic ────────────────────────────────────────────────────────
-  // Starts a countdown. If _playerAlive is never set to true within the delay,
-  // we move to the next source. If JS activity is detected, we cancel.
-
   void _beginAutoAdvance() {
-    _cancelAutoAdvance(); // clear any existing timers
-    if (_playerAlive) return; // already confirmed working
+    _cancelAutoAdvance();
+    if (_playerAlive) return;
 
     setState(() {
       _autoAdvancing = true;
       _countdown = _kAutoAdvanceDelay.inSeconds;
     });
 
-    // Countdown display ticker
     _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(
@@ -111,7 +111,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       );
     });
 
-    // Actual advance
     _advanceTimer = Timer(_kAutoAdvanceDelay, () {
       if (!mounted || _playerAlive) return;
       _goNextSource();
@@ -137,7 +136,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _cancelAutoAdvance();
     if (mounted) {
       setState(() => _loading = false);
-      _showControls(); // show briefly then auto-hide
+      _showControls();
     }
   }
 
@@ -147,7 +146,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (next < _sources.length) {
       _switchSource(next);
     } else {
-      // Exhausted all sources — stop and show error
       setState(() {
         _autoAdvancing = false;
         _loading = false;
@@ -171,8 +169,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  // ── Episode navigation ────────────────────────────────────────────────────────
-
   void _playEpisode(Episode ep) {
     _cancelAutoAdvance();
     setState(() {
@@ -188,16 +184,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
         headers: {'Referer': 'https://vidnest.fun/'},
       ),
     );
-    _webViewWidget = _buildWebView(); // rebuild only on episode change
+    _webViewWidget = _buildWebView();
     setState(() {});
   }
-
-  // ── Fullscreen ────────────────────────────────────────────────────────────────
 
   void _showControls() {
     _controlsHideTimer?.cancel();
     setState(() => _controlsVisible = true);
-    // Auto-hide after 3s when video is playing
+
     if (_playerAlive) {
       _controlsHideTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _controlsVisible = false);
@@ -243,8 +237,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.dispose();
   }
 
-  // ── WebView (built once, stored as field) ─────────────────────────────────────
-
   Widget _buildWebView() {
     return InAppWebView(
       initialUrlRequest: URLRequest(
@@ -252,32 +244,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
         headers: {'Referer': 'https://vidnest.fun/'},
       ),
       initialSettings: InAppWebViewSettings(
-        // ── CRITICAL: Spoof Chrome UA so VidNest doesn't detect/block us ──
         userAgent: _kUserAgent,
 
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         javaScriptEnabled: true,
         useHybridComposition: true,
-        supportMultipleWindows: true,
+        // iOS: allowing multiple windows gives ad scripts a second WebView surface.
+        supportMultipleWindows: !Platform.isIOS,
         javaScriptCanOpenWindowsAutomatically: false,
 
-        // Don't cache blocked responses
         cacheEnabled: false,
         clearCache: true,
       ),
 
-      // ── Block all popups — the core ad fix ───────────────────────────────
+      // Block popup / new-window attempts.
       onCreateWindow: (ctrl, action) async {
         debugPrint('[AD-BLOCK] Blocked popup → ${action.request.url}');
         return false;
       },
 
+      // Block ad redirects that navigate the main frame (window.location tricks).
+      // Only vidnest.fun and nhdapi.xyz may load in the top-level frame.
+      shouldOverrideUrlLoading: (ctrl, action) async {
+        final isMainFrame = action.isForMainFrame;
+        if (!isMainFrame) return NavigationActionPolicy.ALLOW;
+        if (_isAllowedNavigation(action.request.url)) {
+          return NavigationActionPolicy.ALLOW;
+        }
+        debugPrint('[AD-BLOCK] Blocked navigation → ${action.request.url}');
+        return NavigationActionPolicy.CANCEL;
+      },
+
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
 
-      // onLoadStart: page navigation began — show spinner, start advance timer
-      // BUT: only start advance if this is a top-level navigation (not a sub-resource).
-      // isMainFrame check prevents sub-resource loads from resetting the timer.
       onLoadStart: (ctrl, url) {
         debugPrint('[PLAYER] Load start → $url');
         setState(() {
@@ -287,23 +287,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _beginAutoAdvance();
       },
 
-      // onLoadStop: HTML finished loading. Still don't trust it —
-      // VidNest's "blocked" page also fires this. Let JS activity confirm.
       onLoadStop: (ctrl, url) {
         debugPrint('[PLAYER] Load stop → $url');
         setState(() => _loading = false);
-        // Inject a JS probe — if the page has a video element that's ready,
-        // that's a strong signal the player is working.
+
         _probeForVideo(ctrl);
       },
 
-      // Console messages = JS is running on the page
-      // But VidNest's blocked page also logs to console.
-      // We filter: look for video-player-specific messages.
       onConsoleMessage: (ctrl, msg) {
         final text = msg.message.toLowerCase();
         debugPrint('[PLAYER][console] $text');
-        // VidNest player logs these when it's actually working
+
         if (text.contains('player') ||
             text.contains('hls') ||
             text.contains('video') ||
@@ -316,19 +310,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
       },
 
-      // Hard network errors — skip immediately, no countdown needed
       onReceivedError: (ctrl, request, error) {
         debugPrint(
           '[PLAYER] Network error on ${request.url}: ${error.description}',
         );
-        // Only act on main frame errors, not sub-resource failures
+
         if (request.isForMainFrame == true) {
           _cancelAutoAdvance();
           Future.microtask(_goNextSource);
         }
       },
 
-      // HTTP errors (403, 404, etc.) — skip immediately
       onReceivedHttpError: (ctrl, request, response) {
         debugPrint('[PLAYER] HTTP ${response.statusCode} on ${request.url}');
         if (request.isForMainFrame == true &&
@@ -340,7 +332,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  // Inject JS to check if a video element exists and has a source
   Future<void> _probeForVideo(InAppWebViewController ctrl) async {
     try {
       final result = await ctrl.evaluateJavascript(
@@ -350,7 +341,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           for (var v of vids) {
             if (v.src || v.currentSrc || v.querySelector('source')) return true;
           }
-          // Also check for iframe players that embed deeper
+          
           var iframes = document.querySelectorAll('iframe');
           return iframes.length > 0;
         })();
@@ -365,12 +356,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } catch (_) {}
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // When fullscreen, back gesture exits fullscreen instead of popping the page
       canPop: !_isFullscreen,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _isFullscreen) _toggleFullscreen();
@@ -386,7 +374,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return SafeArea(
       child: Column(
         children: [
-          // ── Back button bar ────────────────────────────────────────────────────
           Container(
             color: AppTheme.darkBg,
             padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
@@ -430,8 +417,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           Positioned.fill(child: _webViewWidget),
           if (_loading || _autoAdvancing) _buildOverlay(),
 
-          // Controls — always on top, buttons use HitTestBehavior.opaque
-          // so they intercept taps before the WebView sees them
           AnimatedOpacity(
             opacity: _controlsVisible ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 250),
@@ -439,8 +424,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ignoring: !_controlsVisible,
               child: Stack(
                 children: [
-                  // Tap zone to hide controls (semi-transparent, won't affect WebView
-                  // because IgnorePointer is off when controls are visible)
                   Positioned.fill(
                     child: GestureDetector(
                       onTap: _toggleControls,
@@ -448,7 +431,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: const SizedBox.expand(),
                     ),
                   ),
-                  // Exit fullscreen button — top left
+
                   Positioned(
                     top: 16.h,
                     left: 16.w,
@@ -492,7 +475,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
           ),
 
-          // Show controls button — always visible small dot when controls hidden
           if (!_controlsVisible && !_loading && !_autoAdvancing)
             Positioned(
               top: 12.h,
@@ -526,8 +508,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           _webViewWidget,
           if (_loading || _autoAdvancing) _buildOverlay(),
-          // Fullscreen button — sits ON TOP of WebView, outside its touch area
-          // Uses Positioned so it doesn't cover the whole WebView
+
           Positioned(
             bottom: 8.h,
             right: 8.w,
@@ -708,7 +689,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ],
                 ),
               ),
-              // SUB / DUB
+
               Container(
                 decoration: BoxDecoration(
                   color: AppTheme.darkCard,
@@ -763,7 +744,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ],
           ),
           SizedBox(height: 8.h),
-          // Server pills
+
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
