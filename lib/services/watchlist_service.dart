@@ -40,79 +40,88 @@ extension WatchStatusExt on WatchStatus {
 }
 
 class WatchlistService extends ChangeNotifier {
-  static const _statusKey = 'watchlist_status_v2';
-  static const _historyKey = 'watch_history';
+  static const _animeStatusKey = 'watchlist_status_v2';
+  static const _animeHistoryKey = 'watch_history';
+  static const _mediaStatusKey = 'media_watchlist_v1';
+  static const _mediaHistoryKey = 'media_history_v1';
 
-  Map<int, WatchStatus> _statusMap = {};
+  Map<int, WatchStatus> _animeStatus = {};
+  Map<String, int> _animeHistory = {};
+  Map<int, WatchStatus> _mediaStatus = {};
+  Map<String, int> _mediaHistory = {};
 
-  Map<String, int> _history = {};
-
-  Map<int, WatchStatus> get statusMap => _statusMap;
+  Map<int, WatchStatus> get animeStatusMap => _animeStatus;
+  Map<int, WatchStatus> get mediaStatusMap => _mediaStatus;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final raw = prefs.getString(_statusKey);
-    if (raw != null) {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      _statusMap = decoded.map(
+    final animeRaw = prefs.getString(_animeStatusKey);
+    if (animeRaw != null) {
+      final decoded = jsonDecode(animeRaw) as Map<String, dynamic>;
+      _animeStatus = decoded.map(
         (k, v) => MapEntry(int.parse(k), WatchStatus.values[v as int]),
       );
     }
-
-    final histRaw = prefs.getString(_historyKey);
-    if (histRaw != null) {
-      _history = Map<String, int>.from(jsonDecode(histRaw));
+    final animeHistRaw = prefs.getString(_animeHistoryKey);
+    if (animeHistRaw != null) {
+      _animeHistory = Map<String, int>.from(jsonDecode(animeHistRaw));
     }
+
+    final mediaRaw = prefs.getString(_mediaStatusKey);
+    if (mediaRaw != null) {
+      final decoded = jsonDecode(mediaRaw) as Map<String, dynamic>;
+      _mediaStatus = decoded.map(
+        (k, v) => MapEntry(int.parse(k), WatchStatus.values[v as int]),
+      );
+    }
+    final mediaHistRaw = prefs.getString(_mediaHistoryKey);
+    if (mediaHistRaw != null) {
+      _mediaHistory = Map<String, int>.from(jsonDecode(mediaHistRaw));
+    }
+
     notifyListeners();
   }
 
-  Future<void> _saveStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _statusKey,
-      jsonEncode(_statusMap.map((k, v) => MapEntry(k.toString(), v.index))),
-    );
-  }
+  WatchStatus? getStatus(int id) => _animeStatus[id];
+  bool isInAnyList(int id) => _animeStatus.containsKey(id);
+  bool isFavourite(int id) => _animeStatus[id] == WatchStatus.favourite;
+  bool isInWatchlist(int id) => isInAnyList(id);
 
-  WatchStatus? getStatus(int id) => _statusMap[id];
-  bool isInAnyList(int id) => _statusMap.containsKey(id);
-  bool isFavourite(int id) => _statusMap[id] == WatchStatus.favourite;
-
-  List<int> getByStatus(WatchStatus status) => _statusMap.entries
+  List<int> getByStatus(WatchStatus status) => _animeStatus.entries
       .where((e) => e.value == status)
       .map((e) => e.key)
       .toList();
 
   Future<void> setStatus(int id, WatchStatus? status) async {
     if (status == null) {
-      _statusMap.remove(id);
+      _animeStatus.remove(id);
     } else {
-      _statusMap[id] = status;
+      _animeStatus[id] = status;
     }
-    await _saveStatus();
+    await _saveAnimeStatus();
     notifyListeners();
   }
 
   Future<void> removeFromList(int id) async {
-    _statusMap.remove(id);
-    await _saveStatus();
+    _animeStatus.remove(id);
+    await _saveAnimeStatus();
     notifyListeners();
   }
 
   Future<void> markWatched(int animeId, int episode) async {
-    _history['$animeId-$episode'] = DateTime.now().millisecondsSinceEpoch;
+    _animeHistory['$animeId-$episode'] = DateTime.now().millisecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_historyKey, jsonEncode(_history));
+    await prefs.setString(_animeHistoryKey, jsonEncode(_animeHistory));
     notifyListeners();
   }
 
   bool isWatched(int animeId, int episode) =>
-      _history.containsKey('$animeId-$episode');
+      _animeHistory.containsKey('$animeId-$episode');
 
   int lastWatchedEpisode(int animeId) {
     int last = 0;
-    for (final key in _history.keys) {
+    for (final key in _animeHistory.keys) {
       if (key.startsWith('$animeId-')) {
         final ep = int.tryParse(key.split('-').last) ?? 0;
         if (ep > last) last = ep;
@@ -121,5 +130,75 @@ class WatchlistService extends ChangeNotifier {
     return last;
   }
 
-  bool isInWatchlist(int id) => isInAnyList(id);
+  Future<void> _saveAnimeStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _animeStatusKey,
+      jsonEncode(_animeStatus.map((k, v) => MapEntry(k.toString(), v.index))),
+    );
+  }
+
+  WatchStatus? getMediaStatus(int id) => _mediaStatus[id];
+  bool isMediaInAnyList(int id) => _mediaStatus.containsKey(id);
+  bool isMediaFavourite(int id) => _mediaStatus[id] == WatchStatus.favourite;
+
+  List<int> getMediaByStatus(WatchStatus status) => _mediaStatus.entries
+      .where((e) => e.value == status)
+      .map((e) => e.key)
+      .toList();
+
+  Future<void> setMediaStatus(int id, WatchStatus? status) async {
+    if (status == null) {
+      _mediaStatus.remove(id);
+    } else {
+      _mediaStatus[id] = status;
+    }
+    await _saveMediaStatus();
+    notifyListeners();
+  }
+
+  Future<void> removeMediaFromList(int id) async {
+    _mediaStatus.remove(id);
+    await _saveMediaStatus();
+    notifyListeners();
+  }
+
+  Future<void> markMediaWatched(
+    int mediaId, {
+    int season = 0,
+    int episode = 0,
+  }) async {
+    final key =
+        episode == 0 ? '$mediaId-movie' : '$mediaId-s${season}e$episode';
+    _mediaHistory[key] = DateTime.now().millisecondsSinceEpoch;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_mediaHistoryKey, jsonEncode(_mediaHistory));
+    notifyListeners();
+  }
+
+  bool isMediaWatched(int mediaId, {int season = 0, int episode = 0}) {
+    final key =
+        episode == 0 ? '$mediaId-movie' : '$mediaId-s${season}e$episode';
+    return _mediaHistory.containsKey(key);
+  }
+
+  int lastWatchedMediaEpisode(int mediaId, int season) {
+    int last = 0;
+    for (final key in _mediaHistory.keys) {
+      final prefix = '$mediaId-s${season}e';
+      if (key.startsWith(prefix)) {
+        final ep = int.tryParse(key.replaceFirst(prefix, '')) ?? 0;
+        if (ep > last) last = ep;
+      }
+    }
+    return last;
+  }
+
+  Future<void> _saveMediaStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _mediaStatusKey,
+      jsonEncode(_mediaStatus.map((k, v) => MapEntry(k.toString(), v.index))),
+    );
+  }
 }

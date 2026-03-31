@@ -32,7 +32,7 @@ Future<Map<String, dynamic>> _gql(
   return json['data'] as Map<String, dynamic>;
 }
 
-Future<HomeData> getHomeData() async {
+Future<AnimeHomeData> getAnimeHomeData() async {
   final data = await _gql('''
     query {
       trending: Page(page:1,perPage:15) {
@@ -49,7 +49,7 @@ Future<HomeData> getHomeData() async {
       }
     }
   ''');
-  return HomeData(
+  return AnimeHomeData(
     trending: _mapList(data['trending']['media']),
     topAiring: _mapList(data['topAiring']['media']),
     popular: _mapList(data['popular']['media']),
@@ -174,7 +174,7 @@ const _vidnestServers = [
   'lamda',
 ];
 
-List<String> getEmbedUrls(int anilistId, int episode, {bool dub = false}) {
+List<String> getAnimeEmbedUrls(int anilistId, int episode, {bool dub = false}) {
   final sub = dub ? 'dub' : 'sub';
   return [
     for (final srv in _vidnestServers)

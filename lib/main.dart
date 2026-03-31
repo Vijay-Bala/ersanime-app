@@ -5,9 +5,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'services/watchlist_service.dart';
-import 'screens/home_screen.dart';
-import 'screens/search_screen.dart';
-import 'screens/library_screen.dart';
+import 'screens/anime/anime_home_screen.dart';
+import 'screens/anime/anime_search_screen.dart';
+import 'screens/anime/anime_library_screen.dart';
+import 'screens/media/media_home_screen.dart';
+import 'screens/media/media_search_screen.dart';
+import 'screens/media/media_library_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,12 +27,31 @@ void main() async {
   final watchlist = WatchlistService();
   await watchlist.load();
   runApp(
-    ChangeNotifierProvider.value(value: watchlist, child: const ERSAnimeApp()),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: watchlist),
+        ChangeNotifierProvider(create: (_) => AppModeNotifier()),
+      ],
+      child: const ERSAApp(),
+    ),
   );
 }
 
-class ERSAnimeApp extends StatelessWidget {
-  const ERSAnimeApp({super.key});
+enum AppMode { anime, movies }
+
+class AppModeNotifier extends ChangeNotifier {
+  AppMode _mode = AppMode.anime;
+  AppMode get mode => _mode;
+  void setMode(AppMode m) {
+    if (_mode == m) return;
+    _mode = m;
+    notifyListeners();
+  }
+}
+
+class ERSAApp extends StatelessWidget {
+  const ERSAApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -37,7 +59,7 @@ class ERSAnimeApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) => MaterialApp(
-        title: 'ERSAnime',
+        title: 'ERSA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         home: child,
@@ -54,36 +76,193 @@ class MainNav extends StatefulWidget {
 }
 
 class _MainNavState extends State<MainNav> {
-  int _index = 0;
-  static const _screens = [HomeScreen(), SearchScreen(), LibraryScreen()];
+  int _animeIndex = 0;
+  int _moviesIndex = 0;
+
+  static const _animeScreens = [
+    AnimeHomeScreen(),
+    AnimeSearchScreen(),
+    AnimeLibraryScreen(),
+  ];
+
+  static const _moviesScreens = [
+    MediaHomeScreen(),
+    MediaSearchScreen(),
+    MediaLibraryScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final modeNotifier = context.watch<AppModeNotifier>();
+    final isAnime = modeNotifier.mode == AppMode.anime;
+    final currentIndex = isAnime ? _animeIndex : _moviesIndex;
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: isAnime
+          ? IndexedStack(index: _animeIndex, children: _animeScreens)
+          : IndexedStack(index: _moviesIndex, children: _moviesScreens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
         ),
         child: BottomNavigationBar(
-          currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
+          currentIndex: currentIndex,
+          selectedItemColor:
+              isAnime ? AppTheme.primary : AppTheme.accentOrange,
+          unselectedItemColor: AppTheme.textSecondary,
+          onTap: (i) => setState(() {
+            if (isAnime) {
+              _animeIndex = i;
+            } else {
+              _moviesIndex = i;
+            }
+          }),
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_rounded),
-              label: 'Search',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_rounded),
-              label: 'Library',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
+            BottomNavigationBarItem(icon: Icon(Icons.bookmark_rounded), label: 'Library'),
           ],
         ),
       ),
+    );
+  }
+}
+
+class ModeSwitcherTitle extends StatelessWidget {
+  const ModeSwitcherTitle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final modeNotifier = context.watch<AppModeNotifier>();
+    final isAnime = modeNotifier.mode == AppMode.anime;
+    final gradColors = isAnime
+        ? [AppTheme.primary, AppTheme.accentCyan]
+        : [AppTheme.accentOrange, AppTheme.accentPink];
+    final label = isAnime ? 'ERSA-Anime' : 'ERSA-Movies';
+
+    return GestureDetector(
+      onTap: () => _showDropdown(context, modeNotifier),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) =>
+                LinearGradient(colors: gradColors).createShader(bounds),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(width: 4.w),
+          Icon(
+            Icons.arrow_drop_down_rounded,
+            color: isAnime ? AppTheme.primary : AppTheme.accentOrange,
+            size: 20.sp,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDropdown(BuildContext context, AppModeNotifier notifier) {
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final offset = box.localToGlobal(Offset.zero);
+    showMenu<AppMode>(
+      context: context,
+      color: AppTheme.darkCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppTheme.darkBorder),
+      ),
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy + box.size.height + 4,
+        offset.dx + 220,
+        0,
+      ),
+      items: [
+        PopupMenuItem(
+          value: AppMode.anime,
+          child: _ModeOption(
+            icon: '🎌',
+            label: 'ERSA-Anime',
+            sublabel: 'Anime streaming',
+            gradColors: [AppTheme.primary, AppTheme.accentCyan],
+            selected: notifier.mode == AppMode.anime,
+          ),
+        ),
+        PopupMenuItem(
+          value: AppMode.movies,
+          child: _ModeOption(
+            icon: '🎬',
+            label: 'ERSA-Movies',
+            sublabel: 'Movies & Series streaming',
+            gradColors: [AppTheme.accentOrange, AppTheme.accentPink],
+            selected: notifier.mode == AppMode.movies,
+          ),
+        ),
+      ],
+    ).then((val) {
+      if (val != null) notifier.setMode(val);
+    });
+  }
+}
+
+class _ModeOption extends StatelessWidget {
+  final String icon;
+  final String label;
+  final String sublabel;
+  final List<Color> gradColors;
+  final bool selected;
+
+  const _ModeOption({
+    required this.icon,
+    required this.label,
+    required this.sublabel,
+    required this.gradColors,
+    required this.selected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(icon, style: TextStyle(fontSize: 18.sp)),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShaderMask(
+                shaderCallback: (b) =>
+                    LinearGradient(colors: gradColors).createShader(b),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                sublabel,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 10.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (selected)
+          Icon(Icons.check_rounded, color: gradColors.first, size: 16.sp),
+      ],
     );
   }
 }

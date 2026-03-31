@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../models/anime.dart';
+import '../models/media_item.dart';
 import '../theme/app_theme.dart';
-import '../screens/anime/anime_detail_screen.dart';
+import '../screens/media/media_detail_screen.dart';
 
-class AnimeCard extends StatefulWidget {
-  final Anime anime;
+class MediaCard extends StatefulWidget {
+  final MediaItem item;
   final int index;
-  const AnimeCard({super.key, required this.anime, this.index = 0});
+  const MediaCard({super.key, required this.item, this.index = 0});
 
   @override
-  State<AnimeCard> createState() => _AnimeCardState();
+  State<MediaCard> createState() => _MediaCardState();
 }
 
-class _AnimeCardState extends State<AnimeCard> {
+class _MediaCardState extends State<MediaCard> {
   bool _pressed = false;
 
   @override
@@ -27,9 +27,10 @@ class _AnimeCardState extends State<AnimeCard> {
           onTap: () => Navigator.push(
             context,
             PageRouteBuilder(
-              pageBuilder: (_, a, _) => AnimeDetailScreen(
-                animeId: widget.anime.id,
-                anime: widget.anime,
+              pageBuilder: (_, a, _) => MediaDetailScreen(
+                itemId: widget.item.id,
+                isSeries: widget.item.isSeries,
+                item: widget.item,
               ),
               transitionsBuilder: (_, a, _, child) => FadeTransition(
                 opacity: a,
@@ -53,7 +54,7 @@ class _AnimeCardState extends State<AnimeCard> {
                 border: Border.all(color: AppTheme.darkBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.08),
+                    color: AppTheme.accentCyan.withOpacity(0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -67,21 +68,31 @@ class _AnimeCardState extends State<AnimeCard> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        CachedNetworkImage(
-                          imageUrl: widget.anime.image,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) =>
-                              Container(color: AppTheme.darkCardElev),
-                          errorWidget: (_, _, _) => Container(
-                            color: AppTheme.darkCardElev,
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: AppTheme.textSecondary,
-                              size: 24.sp,
-                            ),
-                          ),
-                        ),
-
+                        widget.item.image.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: widget.item.image,
+                                fit: BoxFit.cover,
+                                placeholder: (_, _) =>
+                                    Container(color: AppTheme.darkCardElev),
+                                errorWidget: (_, _, _) => Container(
+                                  color: AppTheme.darkCardElev,
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: AppTheme.textSecondary,
+                                    size: 24.sp,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                color: AppTheme.darkCardElev,
+                                child: Icon(
+                                  widget.item.isSeries
+                                      ? Icons.tv_rounded
+                                      : Icons.movie_rounded,
+                                  color: AppTheme.textSecondary,
+                                  size: 32.sp,
+                                ),
+                              ),
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -97,8 +108,7 @@ class _AnimeCardState extends State<AnimeCard> {
                             ),
                           ),
                         ),
-
-                        if (widget.anime.rating != null)
+                        if (widget.item.rating != null)
                           Positioned(
                             top: 5.h,
                             right: 5.w,
@@ -115,7 +125,7 @@ class _AnimeCardState extends State<AnimeCard> {
                                 ),
                               ),
                               child: Text(
-                                '★ ${widget.anime.rating!.toStringAsFixed(1)}',
+                                '★ ${widget.item.rating!.toStringAsFixed(1)}',
                                 style: TextStyle(
                                   color: AppTheme.accentYellow,
                                   fontSize: 8.sp,
@@ -124,64 +134,48 @@ class _AnimeCardState extends State<AnimeCard> {
                               ),
                             ),
                           ),
-
-                        if (widget.anime.status == 'Ongoing')
-                          Positioned(
-                            top: 5.h,
-                            left: 5.w,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 5.w,
-                                vertical: 2.h,
+                        Positioned(
+                          top: 5.h,
+                          left: 5.w,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 5.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  (widget.item.isSeries
+                                          ? AppTheme.accentCyan
+                                          : AppTheme.accentOrange)
+                                      .withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6.r),
+                              border: Border.all(
+                                color:
+                                    (widget.item.isSeries
+                                            ? AppTheme.accentCyan
+                                            : AppTheme.accentOrange)
+                                        .withOpacity(0.5),
                               ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentGreen.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6.r),
-                                border: Border.all(
-                                  color: AppTheme.accentGreen.withOpacity(0.5),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                        width: 4.w,
-                                        height: 4.h,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.accentGreen,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppTheme.accentGreen,
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                      .animate(onPlay: (c) => c.repeat())
-                                      .fadeOut(duration: 800.ms)
-                                      .then()
-                                      .fadeIn(duration: 800.ms),
-                                  SizedBox(width: 3.w),
-                                  Text(
-                                    'LIVE',
-                                    style: TextStyle(
-                                      color: AppTheme.accentGreen,
-                                      fontSize: 7.sp,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
+                            ),
+                            child: Text(
+                              widget.item.isSeries ? 'TV' : 'MOVIE',
+                              style: TextStyle(
+                                color: widget.item.isSeries
+                                    ? AppTheme.accentCyan
+                                    : AppTheme.accentOrange,
+                                fontSize: 7.sp,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
+                        ),
                       ],
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(7.w, 5.h, 7.w, 2.h),
                     child: Text(
-                      widget.anime.title,
+                      widget.item.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -195,10 +189,12 @@ class _AnimeCardState extends State<AnimeCard> {
                     padding: EdgeInsets.fromLTRB(7.w, 0, 7.w, 7.h),
                     child: Text(
                       [
-                        if (widget.anime.format != null) widget.anime.format!,
-                        if (widget.anime.episodes != null)
-                          '${widget.anime.episodes} EP',
-                      ].join(' · '),
+                        if (widget.item.year != null) '${widget.item.year}',
+                        if (widget.item.isSeries &&
+                            widget.item.totalSeasons != null)
+                          '${widget.item.totalSeasons} S',
+                        _langLabel(widget.item.originalLanguage),
+                      ].where((s) => s.isNotEmpty).join(' · '),
                       style: TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 8.sp,
@@ -215,5 +211,21 @@ class _AnimeCardState extends State<AnimeCard> {
         .animate(delay: (widget.index * 40).ms)
         .fadeIn(curve: Curves.easeOut)
         .slideY(begin: 0.08, end: 0, curve: Curves.easeOut);
+  }
+
+  String _langLabel(String? code) {
+    const map = {
+      'hi': '🇮🇳 Hindi',
+      'ta': '🇮🇳 Tamil',
+      'te': '🇮🇳 Telugu',
+      'ml': '🇮🇳 Malayalam',
+      'ko': '🇰🇷 Korean',
+      'ja': '🇯🇵 Japanese',
+      'zh': '🇨🇳 Chinese',
+      'en': '🇺🇸 English',
+      'fr': '🇫🇷 French',
+      'es': '🇪🇸 Spanish',
+    };
+    return map[code] ?? '';
   }
 }

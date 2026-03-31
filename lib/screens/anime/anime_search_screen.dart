@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../models/anime.dart';
-import '../services/anilist_service.dart';
-import '../widgets/anime_card.dart';
-import '../widgets/skeleton.dart';
-import '../theme/app_theme.dart';
+import '../../models/anime.dart';
+import '../../services/anilist_service.dart';
+import '../../widgets/anime_card.dart';
+import '../../widgets/skeleton.dart';
+import '../../theme/app_theme.dart';
 
-const kAllGenres = [
+const kAllAnimeGenres = [
   'Action',
   'Adventure',
   'Comedy',
@@ -51,25 +51,23 @@ const kAllGenres = [
   'Yuri',
 ];
 
-class SearchScreen extends StatefulWidget {
+class AnimeSearchScreen extends StatefulWidget {
   final String? initialGenre;
-  const SearchScreen({super.key, this.initialGenre});
+  const AnimeSearchScreen({super.key, this.initialGenre});
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  State<AnimeSearchScreen> createState() => _AnimeSearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen>
+class _AnimeSearchScreenState extends State<AnimeSearchScreen>
     with TickerProviderStateMixin {
   final _ctrl = TextEditingController();
   final _focusNode = FocusNode();
-
   List<Anime> _results = [];
   List<Anime> _suggestions = [];
   bool _loading = false;
   bool _showSuggestions = false;
   String _lastQuery = '';
   Set<String> _selectedGenres = {};
-
   Timer? _debounce;
   late AnimationController _suggestAnim;
 
@@ -77,13 +75,9 @@ class _SearchScreenState extends State<SearchScreen>
   void initState() {
     super.initState();
     _suggestAnim = AnimationController(vsync: this, duration: 200.ms);
-
     _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) {
-        _hideSuggestions();
-      }
+      if (!_focusNode.hasFocus) _hideSuggestions();
     });
-
     if (widget.initialGenre != null) {
       _selectedGenres = {widget.initialGenre!};
       WidgetsBinding.instance.addPostFrameCallback((_) => _runSearch());
@@ -126,10 +120,8 @@ class _SearchScreenState extends State<SearchScreen>
     if (q.isEmpty && !hasGenres) return;
     _hideSuggestions();
     _focusNode.unfocus();
-
     if (q == _lastQuery && _selectedGenres.isEmpty) return;
     _lastQuery = q;
-
     setState(() => _loading = true);
     try {
       List<Anime> results;
@@ -147,12 +139,11 @@ class _SearchScreenState extends State<SearchScreen>
       } else {
         results = await searchAnime(q);
       }
-      if (mounted) {
+      if (mounted)
         setState(() {
           _results = results;
           _loading = false;
         });
-      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -166,7 +157,6 @@ class _SearchScreenState extends State<SearchScreen>
         _selectedGenres.add(g);
       }
     });
-
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), _runSearch);
   }
@@ -235,7 +225,6 @@ class _SearchScreenState extends State<SearchScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _GenreChips(selected: _selectedGenres, onToggle: _toggleGenre),
-
           Expanded(
             child: Stack(
               children: [
@@ -258,7 +247,6 @@ class _SearchScreenState extends State<SearchScreen>
                         itemBuilder: (ctx, i) =>
                             AnimeCard(anime: _results[i], index: i),
                       ),
-
                 if (_showSuggestions)
                   Positioned(
                     top: 0,
@@ -404,49 +392,43 @@ class _GenreChips extends StatelessWidget {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-        itemCount: kAllGenres.length,
+        itemCount: kAllAnimeGenres.length,
         itemBuilder: (_, i) {
-          final g = kAllGenres[i];
+          final g = kAllAnimeGenres[i];
           final active = selected.contains(g);
           return Padding(
             padding: EdgeInsets.only(right: 6.w),
-            child: AnimatedContainer(
-              duration: 200.ms,
-              child: GestureDetector(
-                onTap: () => onToggle(g),
-                child: AnimatedContainer(
-                  duration: 180.ms,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 5.h,
+            child: GestureDetector(
+              onTap: () => onToggle(g),
+              child: AnimatedContainer(
+                duration: 180.ms,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                decoration: BoxDecoration(
+                  color: active
+                      ? AppTheme.primary.withOpacity(0.2)
+                      : AppTheme.darkCard,
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: active ? AppTheme.primary : AppTheme.darkBorder,
+                    width: active ? 1.5 : 1,
                   ),
-                  decoration: BoxDecoration(
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  g,
+                  style: TextStyle(
                     color: active
-                        ? AppTheme.primary.withOpacity(0.2)
-                        : AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: active ? AppTheme.primary : AppTheme.darkBorder,
-                      width: active ? 1.5 : 1,
-                    ),
-                    boxShadow: active
-                        ? [
-                            BoxShadow(
-                              color: AppTheme.primary.withOpacity(0.3),
-                              blurRadius: 8,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Text(
-                    g,
-                    style: TextStyle(
-                      color: active
-                          ? AppTheme.primaryLight
-                          : AppTheme.textSecondary,
-                      fontSize: 11.sp,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    ),
+                        ? AppTheme.primaryLight
+                        : AppTheme.textSecondary,
+                    fontSize: 11.sp,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ),

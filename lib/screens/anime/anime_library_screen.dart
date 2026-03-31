@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../services/watchlist_service.dart';
-import '../services/anilist_service.dart';
-import '../models/anime.dart';
-import '../widgets/anime_card.dart';
-import '../widgets/skeleton.dart';
-import '../theme/app_theme.dart';
+import '../../services/watchlist_service.dart';
+import '../../services/anilist_service.dart';
+import '../../models/anime.dart';
+import '../../widgets/anime_card.dart';
+import '../../widgets/skeleton.dart';
+import '../../theme/app_theme.dart';
 
-class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+class AnimeLibraryScreen extends StatefulWidget {
+  const AnimeLibraryScreen({super.key});
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  State<AnimeLibraryScreen> createState() => _AnimeLibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen>
+class _AnimeLibraryScreenState extends State<AnimeLibraryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
   final _cache = <int, Anime>{};

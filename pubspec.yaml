@@ -1,5 +1,5 @@
-name: ersanime
-description: "ERSAnime - Anime streaming app"
+name: ersa
+description: "ERSA - Anime, Movies & Series streaming app"
 publish_to: 'none'
 
 version: 1.0.0+1

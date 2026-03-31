@@ -104,13 +104,13 @@ class Episode {
   });
 }
 
-class HomeData {
+class AnimeHomeData {
   final List<Anime> trending;
   final List<Anime> topAiring;
   final List<Anime> popular;
   final List<Anime> recent;
 
-  const HomeData({
+  const AnimeHomeData({
     required this.trending,
     required this.topAiring,
     required this.popular,

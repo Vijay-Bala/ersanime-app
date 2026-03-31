@@ -4,14 +4,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../models/anime.dart';
-import '../services/anilist_service.dart';
-import '../services/watchlist_service.dart';
-import '../widgets/anime_card.dart';
-import '../widgets/skeleton.dart';
-import '../theme/app_theme.dart';
-import 'player_screen.dart';
-import 'search_screen.dart';
+import '../../models/anime.dart';
+import '../../services/anilist_service.dart';
+import '../../services/watchlist_service.dart';
+import '../../widgets/anime_card.dart';
+import '../../widgets/skeleton.dart';
+import '../../theme/app_theme.dart';
+import 'anime_player_screen.dart';
+import 'anime_search_screen.dart';
 
 class AnimeDetailScreen extends StatefulWidget {
   final int animeId;
@@ -310,7 +310,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => SearchScreen(
+                                          builder: (_) => AnimeSearchScreen(
                                             initialGenre: e.value,
                                           ),
                                         ),

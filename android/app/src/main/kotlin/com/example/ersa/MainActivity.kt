@@ -1,4 +1,4 @@
-package com.example.ersanime
+package com.example.ersa
 
 import android.content.res.Configuration
 import com.thesparks.android_pip.PipCallbackHelper
