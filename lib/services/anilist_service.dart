@@ -174,13 +174,22 @@ const _vidnestServers = [
   'lamda',
 ];
 
+const _aniwaveServers = ['vidstreaming', 'filemoon', 'mp4upload', 'streamwish'];
+
 List<String> getAnimeEmbedUrls(int anilistId, int episode, {bool dub = false}) {
   final sub = dub ? 'dub' : 'sub';
   return [
+    // 1. animepahe via vidnest (priority 1)
     for (final srv in _vidnestServers)
       'https://vidnest.fun/animepahe/$anilistId/$episode/$sub${srv.isEmpty ? '' : '?server=$srv'}',
+    // 2. vidnest direct (priority 2)
     for (final srv in ['', 'sigma', 'alfa'])
       'https://vidnest.fun/anime/$anilistId/$episode/$sub${srv.isEmpty ? '' : '?server=$srv'}',
+    // 3. aniwave / 9anime-compatible sources (priority 3)
+    for (final srv in _aniwaveServers)
+      'https://allaniurl.xyz/embed/$anilistId/$episode/$sub?server=$srv',
+    'https://9animetv.to/ajax/episode/sources?id=$anilistId&ep=$episode&type=$sub',
+    // 4. nhdapi fallback
     for (final srv in ['', 'sigma', 'alfa'])
       'https://nhdapi.xyz/animepahe/$anilistId/$episode/$sub${srv.isEmpty ? '' : '?server=$srv'}',
   ];

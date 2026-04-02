@@ -18,19 +18,51 @@ final String _kUserAgent = Platform.isIOS
           'AppleWebKit/537.36 (KHTML, like Gecko) '
           'Chrome/124.0.0.0 Mobile Safari/537.36';
 
-const _kAllowedHosts = {'vidnest.fun', 'nhdapi.xyz'};
+const _kAllowedHosts = {
+  'vidnest.fun', 'nhdapi.xyz',
+  'allaniurl.xyz', '9animetv.to',
+  'animepahe.ru', 'animepahe.com', 'animepahe.org',
+  'kwik.si', 'kwik.cx', // animepahe CDN
+  'filemoon.sx', 'filemoon.to', // aniwave server
+  'mp4upload.com', // aniwave server
+  'streamwish.com', 'streamwish.to', // aniwave server
+  'vidstreaming.io', 'gogoanime.gg', // aniwave/gogoanime CDN
+};
 
 const _kAdHosts = {
-  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
-  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
-  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
-  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
-  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
-  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
-  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
-  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
-  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
-  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
+  'adexchangeclear.com',
+  'usrpubtrk.com',
+  'acscdn.com',
+  'ieenhijxbigyt.space',
+  'cloudnestra.com',
+  'vsembed.ru',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googletagmanager.com',
+  'googletagservices.com',
+  'google-analytics.com',
+  'adservice.google.com',
+  'amazon-adsystem.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'popcash.net',
+  'propellerads.com',
+  'adsterra.com',
+  'trafficjunky.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficfactory.biz',
+  'hilltopads.net',
+  'ero-advertising.com',
+  'adnxs.com',
+  'advertising.com',
+  'criteo.com',
+  'rubiconproject.com',
+  'openx.net',
+  'pubmatic.com',
+  'smartadserver.com',
+  'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -87,12 +119,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _currentEp = widget.episode;
     _buildSources();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WatchlistService>().markWatched(widget.anime.id, _currentEp.number);
+      context.read<WatchlistService>().markWatched(
+        widget.anime.id,
+        _currentEp.number,
+      );
     });
   }
 
   void _buildSources() {
-    _sources = getAnimeEmbedUrls(widget.anime.id, _currentEp.number, dub: _isDub);
+    _sources = getAnimeEmbedUrls(
+      widget.anime.id,
+      _currentEp.number,
+      dub: _isDub,
+    );
     _sourceIndex = 0;
     _playerAlive = false;
   }
@@ -102,10 +141,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _beginAutoAdvance() {
     _cancelAutoAdvance();
     if (_playerAlive) return;
-    setState(() { _autoAdvancing = true; _countdown = _kAutoAdvanceDelay.inSeconds; });
+    setState(() {
+      _autoAdvancing = true;
+      _countdown = _kAutoAdvanceDelay.inSeconds;
+    });
     _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _countdown = (_countdown - 1).clamp(0, _kAutoAdvanceDelay.inSeconds));
+      setState(
+        () => _countdown = (_countdown - 1).clamp(
+          0,
+          _kAutoAdvanceDelay.inSeconds,
+        ),
+      );
     });
     _advanceTimer = Timer(_kAutoAdvanceDelay, () {
       if (!mounted || _playerAlive) return;
@@ -126,35 +173,55 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (_playerAlive) return;
     _playerAlive = true;
     _cancelAutoAdvance();
-    if (mounted) { setState(() => _loading = false); _showControls(); }
+    if (mounted) {
+      setState(() => _loading = false);
+      _showControls();
+    }
   }
 
   void _goNextSource() {
     if (!mounted) return;
     final next = _sourceIndex + 1;
-    if (next < _sources.length) _switchSource(next);
-    else setState(() { _autoAdvancing = false; _loading = false; });
+    if (next < _sources.length)
+      _switchSource(next);
+    else
+      setState(() {
+        _autoAdvancing = false;
+        _loading = false;
+      });
   }
 
   void _switchSource(int i) {
     if (i >= _sources.length || i < 0) return;
-    setState(() { _sourceIndex = i; _loading = true; _playerAlive = false; });
+    setState(() {
+      _sourceIndex = i;
+      _loading = true;
+      _playerAlive = false;
+    });
     _cancelAutoAdvance();
-    _webCtrl?.loadUrl(urlRequest: URLRequest(
-      url: WebUri(_sources[i]),
-      headers: {'Referer': 'https://vidnest.fun/'},
-    ));
+    _webCtrl?.loadUrl(
+      urlRequest: URLRequest(
+        url: WebUri(_sources[i]),
+        headers: {'Referer': 'https://vidnest.fun/'},
+      ),
+    );
   }
 
   void _playEpisode(Episode ep) {
     _cancelAutoAdvance();
-    setState(() { _currentEp = ep; _loading = true; _playerAlive = false; });
+    setState(() {
+      _currentEp = ep;
+      _loading = true;
+      _playerAlive = false;
+    });
     _buildSources();
     context.read<WatchlistService>().markWatched(widget.anime.id, ep.number);
-    _webCtrl?.loadUrl(urlRequest: URLRequest(
-      url: WebUri(_currentUrl),
-      headers: {'Referer': 'https://vidnest.fun/'},
-    ));
+    _webCtrl?.loadUrl(
+      urlRequest: URLRequest(
+        url: WebUri(_currentUrl),
+        headers: {'Referer': 'https://vidnest.fun/'},
+      ),
+    );
   }
 
   void _showControls() {
@@ -171,18 +238,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (_controlsVisible) {
       _controlsHideTimer?.cancel();
       setState(() => _controlsVisible = false);
-    } else { _showControls(); }
+    } else {
+      _showControls();
+    }
   }
 
   void _toggleFullscreen() {
     // ── KEY FIX: only change orientation/UI mode, never rebuild WebView ──
     if (_isFullscreen) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
       ]);
     }
     setState(() => _isFullscreen = !_isFullscreen);
@@ -193,7 +266,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     _cancelAutoAdvance(updateState: false);
     _controlsHideTimer?.cancel();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
@@ -219,7 +295,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ),
       shouldInterceptRequest: (ctrl, request) async {
         final host = request.url.host.toLowerCase();
-        if (_isAdHost(host)) return WebResourceResponse(statusCode: 200, data: Uint8List(0));
+        if (_isAdHost(host))
+          return WebResourceResponse(statusCode: 200, data: Uint8List(0));
         return null;
       },
       onCreateWindow: (ctrl, action) async => false,
@@ -227,12 +304,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
         final host = action.request.url?.host.toLowerCase() ?? '';
         if (_isAdHost(host)) return NavigationActionPolicy.CANCEL;
-        if (_isAllowedNavigation(action.request.url)) return NavigationActionPolicy.ALLOW;
+        if (_isAllowedNavigation(action.request.url))
+          return NavigationActionPolicy.ALLOW;
         return NavigationActionPolicy.CANCEL;
       },
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
       onLoadStart: (ctrl, url) {
-        setState(() { _loading = true; _playerAlive = false; });
+        setState(() {
+          _loading = true;
+          _playerAlive = false;
+        });
         _beginAutoAdvance();
       },
       onLoadStop: (ctrl, url) {
@@ -242,10 +323,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
       },
       onConsoleMessage: (ctrl, msg) {
         final text = msg.message.toLowerCase();
-        if (text.contains('player') || text.contains('hls') ||
-            text.contains('video') || text.contains('stream') ||
-            text.contains('m3u8') || text.contains('jwplayer') ||
-            text.contains('plyr') || text.contains('source')) {
+        if (text.contains('player') ||
+            text.contains('hls') ||
+            text.contains('video') ||
+            text.contains('stream') ||
+            text.contains('m3u8') ||
+            text.contains('jwplayer') ||
+            text.contains('plyr') ||
+            text.contains('source')) {
           _onPlayerAlive();
         }
       },
@@ -256,7 +341,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
       },
       onReceivedHttpError: (ctrl, request, response) {
-        if (request.isForMainFrame == true && (response.statusCode ?? 200) >= 400) {
+        if (request.isForMainFrame == true &&
+            (response.statusCode ?? 200) >= 400) {
           _cancelAutoAdvance();
           Future.microtask(_goNextSource);
         }
@@ -266,7 +352,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _injectAdKiller(InAppWebViewController ctrl) async {
     try {
-      await ctrl.evaluateJavascript(source: r'''
+      await ctrl.evaluateJavascript(
+        source: r'''
         (function() {
           window.open = function() { return null; };
           window.alert = function() {};
@@ -298,13 +385,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
             { childList: true, subtree: true }
           );
         })();
-      ''');
+      ''',
+      );
     } catch (_) {}
   }
 
   Future<void> _probeForVideo(InAppWebViewController ctrl) async {
     try {
-      final result = await ctrl.evaluateJavascript(source: '''
+      final result = await ctrl.evaluateJavascript(
+        source: '''
         (function() {
           var vids = document.querySelectorAll('video');
           for (var v of vids) {
@@ -312,7 +401,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
           }
           return document.querySelectorAll('iframe').length > 0;
         })();
-      ''');
+      ''',
+      );
       if (result == true) _onPlayerAlive();
     } catch (_) {}
   }
@@ -326,21 +416,88 @@ class _PlayerScreenState extends State<PlayerScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: _isFullscreen ? _buildFullscreenLayout() : _buildPortraitLayout(),
+        // ── KEY FIX: WebView built ONCE at root, never recreated ──
+        body: Stack(
+          children: [
+            Positioned.fill(child: _buildWebView()),
+            if (!_isFullscreen)
+              Positioned.fill(child: _buildPortraitOverlayUI()),
+            if (_isFullscreen)
+              Positioned.fill(child: _buildFullscreenControls()),
+            if (_loading || _autoAdvancing)
+              Positioned.fill(child: _buildOverlay()),
+          ],
+        ),
       ),
     );
   }
 
-  // ── FULLSCREEN ────────────────────────────────────────────────────────────
-  Widget _buildFullscreenLayout() {
-    return Stack(
-      children: [
-        Positioned.fill(child: _buildWebView()),
-        if (_loading || _autoAdvancing) Positioned.fill(child: _buildOverlay()),
-        _buildFullscreenControls(),
-      ],
+  // ── PORTRAIT UI overlay (covers non-video areas with dark UI) ────────────
+  Widget _buildPortraitOverlayUI() {
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildTopBar(),
+          // Transparent 16:9 window — WebView shows through here
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: 8.h,
+                  right: 8.w,
+                  child: GestureDetector(
+                    onTap: _toggleFullscreen,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.fullscreen_rounded,
+                            color: Colors.white,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'Fullscreen',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: AppTheme.darkBg,
+              child: Column(
+                children: [
+                  _buildControls(),
+                  Expanded(child: _buildEpisodeGrid()),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  // ── FULLSCREEN (no separate layout — handled in build() Stack) ────────────
 
   Widget _buildFullscreenControls() {
     return GestureDetector(
@@ -350,7 +507,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           // Always-visible back button
           Positioned(
-            top: 16.h, left: 16.w,
+            top: 16.h,
+            left: 16.w,
             child: GestureDetector(
               onTap: _toggleFullscreen,
               child: _iconBtn(Icons.arrow_back_ios_new_rounded, 'Exit'),
@@ -362,18 +520,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
             duration: const Duration(milliseconds: 250),
             child: IgnorePointer(
               ignoring: !_controlsVisible,
-              child: Stack(children: [
-                Positioned(
-                  bottom: 20.h, left: 0, right: 0,
-                  child: _buildFullscreenBottomBar(),
-                ),
-              ]),
+              child: Stack(
+                children: [
+                  Positioned(
+                    bottom: 20.h,
+                    left: 0,
+                    right: 0,
+                    child: _buildFullscreenBottomBar(),
+                  ),
+                ],
+              ),
             ),
           ),
           // Hint when controls hidden
           if (!_controlsVisible && !_loading)
             Positioned(
-              top: 12.h, right: 12.w,
+              top: 12.h,
+              right: 12.w,
               child: GestureDetector(
                 onTap: _showControls,
                 behavior: HitTestBehavior.opaque,
@@ -383,7 +546,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     color: Colors.black38,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: Icon(Icons.touch_app_rounded, color: Colors.white38, size: 16.sp),
+                  child: Icon(
+                    Icons.touch_app_rounded,
+                    color: Colors.white38,
+                    size: 16.sp,
+                  ),
                 ),
               ),
             ),
@@ -400,11 +567,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.white24),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Colors.white, size: 16.sp),
-        SizedBox(width: 4.w),
-        Text(label, style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16.sp),
+          SizedBox(width: 4.w),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -420,62 +597,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.anime.title,
-            style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700),
-            overflow: TextOverflow.ellipsis),
-          Text('Episode ${_currentEp.number}',
-            style: TextStyle(color: AppTheme.accentCyan, fontSize: 10.sp)),
-          SizedBox(height: 10.h),
-          Row(children: [
-            Expanded(child: _buildServerRow(dark: true)),
-            SizedBox(width: 8.w),
-            _buildSubDubToggle(dark: true),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  // ── PORTRAIT ──────────────────────────────────────────────────────────────
-  Widget _buildPortraitLayout() {
-    return SafeArea(
-      child: SizedBox.expand(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _buildWebView()),
-                  if (_loading || _autoAdvancing) Positioned.fill(child: _buildOverlay()),
-                  Positioned(
-                    bottom: 8.h, right: 8.w,
-                    child: GestureDetector(
-                      onTap: _toggleFullscreen,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.fullscreen_rounded, color: Colors.white, size: 18.sp),
-                          SizedBox(width: 4.w),
-                          Text('Fullscreen', style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          Text(
+            widget.anime.title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
             ),
-            _buildControls(),
-            Expanded(child: _buildEpisodeGrid()),
-          ],
-        ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            'Episode ${_currentEp.number}',
+            style: TextStyle(color: AppTheme.accentCyan, fontSize: 10.sp),
+          ),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Expanded(child: _buildServerRow(dark: true)),
+              SizedBox(width: 8.w),
+              _buildSubDubToggle(dark: true),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -487,13 +630,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 18.sp),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.textPrimary,
+              size: 18.sp,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
-            child: Text(widget.anime.title,
+            child: Text(
+              widget.anime.title,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -511,13 +664,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(widget.anime.title,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppTheme.textPrimary, fontSize: 13.sp, fontWeight: FontWeight.w700)),
-                  Text('Episode ${_currentEp.number}',
-                    style: TextStyle(color: AppTheme.accentCyan, fontSize: 11.sp)),
-                ]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.anime.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Episode ${_currentEp.number}',
+                      style: TextStyle(
+                        color: AppTheme.accentCyan,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               _buildSubDubToggle(),
             ],
@@ -532,41 +699,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _buildServerRow({bool dark = false}) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(children: [
-        Text('Servers:',
-          style: TextStyle(
-            color: dark ? Colors.white60 : AppTheme.textSecondary,
-            fontSize: 10.sp, fontWeight: FontWeight.w600)),
-        SizedBox(width: 6.w),
-        for (int i = 0; i < _sources.length; i++)
-          Padding(
-            padding: EdgeInsets.only(right: 4.w),
-            child: GestureDetector(
-              onTap: () => _switchSource(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: i == _sourceIndex
-                      ? (_playerAlive ? AppTheme.accentGreen : AppTheme.primary).withOpacity(0.25)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6.r),
-                  border: Border.all(
-                    color: i == _sourceIndex
-                        ? (_playerAlive ? AppTheme.accentGreen : AppTheme.primary)
-                        : (dark ? Colors.white30 : AppTheme.darkBorder),
-                  ),
-                ),
-                child: Text('${i + 1}',
-                  style: TextStyle(
-                    color: i == _sourceIndex
-                        ? (_playerAlive ? AppTheme.accentGreen : AppTheme.primaryLight)
-                        : (dark ? Colors.white60 : AppTheme.textSecondary),
-                    fontSize: 10.sp, fontWeight: FontWeight.w600)),
-              ),
+      child: Row(
+        children: [
+          Text(
+            'Servers:',
+            style: TextStyle(
+              color: dark ? Colors.white60 : AppTheme.textSecondary,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
-      ]),
+          SizedBox(width: 6.w),
+          for (int i = 0; i < _sources.length; i++)
+            Padding(
+              padding: EdgeInsets.only(right: 4.w),
+              child: GestureDetector(
+                onTap: () => _switchSource(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: i == _sourceIndex
+                        ? (_playerAlive
+                                  ? AppTheme.accentGreen
+                                  : AppTheme.primary)
+                              .withOpacity(0.25)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(
+                      color: i == _sourceIndex
+                          ? (_playerAlive
+                                ? AppTheme.accentGreen
+                                : AppTheme.primary)
+                          : (dark ? Colors.white30 : AppTheme.darkBorder),
+                    ),
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      color: i == _sourceIndex
+                          ? (_playerAlive
+                                ? AppTheme.accentGreen
+                                : AppTheme.primaryLight)
+                          : (dark ? Colors.white60 : AppTheme.textSecondary),
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -577,82 +761,153 @@ class _PlayerScreenState extends State<PlayerScreen> {
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: dark ? Colors.white30 : AppTheme.darkBorder),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        for (final t in ['SUB', 'DUB'])
-          GestureDetector(
-            onTap: () {
-              final wasDub = _isDub;
-              setState(() => _isDub = t == 'DUB');
-              if (_isDub != wasDub) {
-                _buildSources();
-                _webCtrl?.loadUrl(urlRequest: URLRequest(
-                  url: WebUri(_currentUrl),
-                  headers: {'Referer': 'https://vidnest.fun/'},
-                ));
-                _beginAutoAdvance();
-              }
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
-              decoration: BoxDecoration(
-                color: (t == 'DUB') == _isDub ? AppTheme.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(7.r),
-              ),
-              child: Text(t,
-                style: TextStyle(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final t in ['SUB', 'DUB'])
+            GestureDetector(
+              onTap: () {
+                final wasDub = _isDub;
+                setState(() => _isDub = t == 'DUB');
+                if (_isDub != wasDub) {
+                  _buildSources();
+                  _webCtrl?.loadUrl(
+                    urlRequest: URLRequest(
+                      url: WebUri(_currentUrl),
+                      headers: {'Referer': 'https://vidnest.fun/'},
+                    ),
+                  );
+                  _beginAutoAdvance();
+                }
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                decoration: BoxDecoration(
                   color: (t == 'DUB') == _isDub
-                      ? Colors.white
-                      : (dark ? Colors.white60 : AppTheme.textSecondary),
-                  fontSize: 10.sp, fontWeight: FontWeight.w700)),
+                      ? AppTheme.primary
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(7.r),
+                ),
+                child: Text(
+                  t,
+                  style: TextStyle(
+                    color: (t == 'DUB') == _isDub
+                        ? Colors.white
+                        : (dark ? Colors.white60 : AppTheme.textSecondary),
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 
   Widget _buildOverlay() {
-    final exhausted = !_autoAdvancing && !_loading && _sourceIndex >= _sources.length - 1;
+    final exhausted =
+        !_autoAdvancing && !_loading && _sourceIndex >= _sources.length - 1;
     return Container(
       color: Colors.black.withOpacity(0.88),
       child: Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          if (exhausted) ...[
-            Icon(Icons.error_outline_rounded, color: AppTheme.accentPink, size: 40.sp),
-            SizedBox(height: 12.h),
-            Text('No working server found',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 14.sp, fontWeight: FontWeight.w700)),
-            SizedBox(height: 6.h),
-            Text('Try again later', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp)),
-            SizedBox(height: 14.h),
-            TextButton(onPressed: () => _switchSource(0),
-              child: Text('Retry from server 1', style: TextStyle(color: AppTheme.primary, fontSize: 12.sp))),
-          ] else ...[
-            SizedBox(
-              width: 36.w, height: 36.h,
-              child: CircularProgressIndicator(
-                color: AppTheme.primary, strokeWidth: 3,
-                value: _autoAdvancing ? 1 - (_countdown / _kAutoAdvanceDelay.inSeconds) : null)),
-            SizedBox(height: 14.h),
-            Text(
-              _loading && !_autoAdvancing
-                  ? 'Loading server ${_sourceIndex + 1} of ${_sources.length}...'
-                  : 'Server ${_sourceIndex + 1} not responding...',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp)),
-            if (_autoAdvancing) ...[
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (exhausted) ...[
+              Icon(
+                Icons.error_outline_rounded,
+                color: AppTheme.accentPink,
+                size: 40.sp,
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                'No working server found',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               SizedBox(height: 6.h),
-              Text('Trying next in ${_countdown}s',
-                style: TextStyle(color: AppTheme.accentCyan, fontSize: 13.sp, fontWeight: FontWeight.w800)),
-              SizedBox(height: 10.h),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                TextButton(onPressed: _goNextSource,
-                  child: Text('Skip now', style: TextStyle(color: AppTheme.primary, fontSize: 11.sp))),
-                SizedBox(width: 8.w),
-                TextButton(onPressed: _cancelAutoAdvance,
-                  child: Text('Stay here', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp))),
-              ]),
+              Text(
+                'Try again later',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                ),
+              ),
+              SizedBox(height: 14.h),
+              TextButton(
+                onPressed: () => _switchSource(0),
+                child: Text(
+                  'Retry from server 1',
+                  style: TextStyle(color: AppTheme.primary, fontSize: 12.sp),
+                ),
+              ),
+            ] else ...[
+              SizedBox(
+                width: 36.w,
+                height: 36.h,
+                child: CircularProgressIndicator(
+                  color: AppTheme.primary,
+                  strokeWidth: 3,
+                  value: _autoAdvancing
+                      ? 1 - (_countdown / _kAutoAdvanceDelay.inSeconds)
+                      : null,
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text(
+                _loading && !_autoAdvancing
+                    ? 'Loading server ${_sourceIndex + 1} of ${_sources.length}...'
+                    : 'Server ${_sourceIndex + 1} not responding...',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                ),
+              ),
+              if (_autoAdvancing) ...[
+                SizedBox(height: 6.h),
+                Text(
+                  'Trying next in ${_countdown}s',
+                  style: TextStyle(
+                    color: AppTheme.accentCyan,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: _goNextSource,
+                      child: Text(
+                        'Skip now',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    TextButton(
+                      onPressed: _cancelAutoAdvance,
+                      child: Text(
+                        'Stay here',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ],
-        ]),
+        ),
       ),
     );
   }
@@ -662,8 +917,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return GridView.builder(
       padding: EdgeInsets.all(10.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 6, childAspectRatio: 1.1,
-        crossAxisSpacing: 6.w, mainAxisSpacing: 6.h,
+        crossAxisCount: 6,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 6.w,
+        mainAxisSpacing: 6.h,
       ),
       itemCount: widget.allEpisodes.length,
       itemBuilder: (ctx, i) {
@@ -675,20 +932,45 @@ class _PlayerScreenState extends State<PlayerScreen> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              gradient: isCurrent ? const LinearGradient(
-                colors: [AppTheme.primary, AppTheme.primaryDark],
-                begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
-              color: isCurrent ? null : isWatched ? AppTheme.darkCardElev : AppTheme.darkCard,
+              gradient: isCurrent
+                  ? const LinearGradient(
+                      colors: [AppTheme.primary, AppTheme.primaryDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isCurrent
+                  ? null
+                  : isWatched
+                  ? AppTheme.darkCardElev
+                  : AppTheme.darkCard,
               borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(color: isCurrent ? AppTheme.primary : AppTheme.darkBorder),
+              border: Border.all(
+                color: isCurrent ? AppTheme.primary : AppTheme.darkBorder,
+              ),
               boxShadow: isCurrent
-                  ? [BoxShadow(color: AppTheme.primary.withOpacity(0.5), blurRadius: 8)]
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primary.withOpacity(0.5),
+                        blurRadius: 8,
+                      ),
+                    ]
                   : null,
             ),
-            child: Center(child: Text('${ep.number}',
-              style: TextStyle(
-                color: isCurrent ? Colors.white : isWatched ? AppTheme.textSecondary : AppTheme.textPrimary,
-                fontSize: 11.sp, fontWeight: FontWeight.w700))),
+            child: Center(
+              child: Text(
+                '${ep.number}',
+                style: TextStyle(
+                  color: isCurrent
+                      ? Colors.white
+                      : isWatched
+                      ? AppTheme.textSecondary
+                      : AppTheme.textPrimary,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
         );
       },

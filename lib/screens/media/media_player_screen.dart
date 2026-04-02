@@ -15,22 +15,52 @@ final String _kUserAgent = Platform.isIOS
     : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 const _kAllowedHosts = {
-  'vidsrc.cc', 'vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.mov',
-  'embed.su', 'multiembed.mov', 'vidlink.pro',
-  '2embed.stream', 'www.2embed.stream',
+  'vidsrc.cc',
+  'vidsrc.to',
+  'vidsrc.me',
+  'vidsrc.icu',
+  'vidsrc.mov',
+  'embed.su',
+  'multiembed.mov',
+  'vidlink.pro',
+  '2embed.stream',
+  'www.2embed.stream',
 };
 
 const _kAdHosts = {
-  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
-  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
-  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
-  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
-  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
-  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
-  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
-  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
-  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
-  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
+  'adexchangeclear.com',
+  'usrpubtrk.com',
+  'acscdn.com',
+  'ieenhijxbigyt.space',
+  'cloudnestra.com',
+  'vsembed.ru',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googletagmanager.com',
+  'googletagservices.com',
+  'google-analytics.com',
+  'adservice.google.com',
+  'amazon-adsystem.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'popcash.net',
+  'propellerads.com',
+  'adsterra.com',
+  'trafficjunky.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficfactory.biz',
+  'hilltopads.net',
+  'ero-advertising.com',
+  'adnxs.com',
+  'advertising.com',
+  'criteo.com',
+  'rubiconproject.com',
+  'openx.net',
+  'pubmatic.com',
+  'smartadserver.com',
+  'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -107,7 +137,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   void _rebuildSources({bool dubbed = false}) {
     if (widget.season != null && _currentEp != null) {
       _sources = getTvEmbedUrls(
-        widget.item.id, widget.season!, _currentEp!.number,
+        widget.item.id,
+        widget.season!,
+        _currentEp!.number,
         dubbed: dubbed,
       );
     } else {
@@ -120,10 +152,18 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   void _beginAutoAdvance() {
     _cancelAutoAdvance();
     if (_playerAlive) return;
-    setState(() { _autoAdvancing = true; _countdown = _kAutoAdvanceDelay.inSeconds; });
+    setState(() {
+      _autoAdvancing = true;
+      _countdown = _kAutoAdvanceDelay.inSeconds;
+    });
     _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _countdown = (_countdown - 1).clamp(0, _kAutoAdvanceDelay.inSeconds));
+      setState(
+        () => _countdown = (_countdown - 1).clamp(
+          0,
+          _kAutoAdvanceDelay.inSeconds,
+        ),
+      );
     });
     _advanceTimer = Timer(_kAutoAdvanceDelay, () {
       if (!mounted || _playerAlive) return;
@@ -144,37 +184,60 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     if (_playerAlive) return;
     _playerAlive = true;
     _cancelAutoAdvance();
-    if (mounted) { setState(() => _loading = false); _showControls(); }
+    if (mounted) {
+      setState(() => _loading = false);
+      _showControls();
+    }
   }
 
   void _goNextSource() {
     if (!mounted) return;
     final next = _sourceIndex + 1;
-    if (next < _sources.length) _switchSource(next);
-    else setState(() { _autoAdvancing = false; _loading = false; });
+    if (next < _sources.length)
+      _switchSource(next);
+    else
+      setState(() {
+        _autoAdvancing = false;
+        _loading = false;
+      });
   }
 
   void _switchSource(int i) {
     if (i >= _sources.length || i < 0) return;
-    setState(() { _sourceIndex = i; _loading = true; _playerAlive = false; });
+    setState(() {
+      _sourceIndex = i;
+      _loading = true;
+      _playerAlive = false;
+    });
     _cancelAutoAdvance();
-    _webCtrl?.loadUrl(urlRequest: URLRequest(
-      url: WebUri(_sources[i]),
-      headers: {'Referer': 'https://vidsrc.cc/'},
-    ));
+    _webCtrl?.loadUrl(
+      urlRequest: URLRequest(
+        url: WebUri(_sources[i]),
+        headers: {'Referer': 'https://vidsrc.cc/'},
+      ),
+    );
   }
 
   void _playEpisode(TvEpisode ep) {
     _cancelAutoAdvance();
-    setState(() { _currentEp = ep; _loading = true; _playerAlive = false; _sourceIndex = 0; });
+    setState(() {
+      _currentEp = ep;
+      _loading = true;
+      _playerAlive = false;
+      _sourceIndex = 0;
+    });
     _rebuildSources(dubbed: _isDub);
     context.read<WatchlistService>().markMediaWatched(
-      widget.item.id, season: widget.season!, episode: ep.number,
+      widget.item.id,
+      season: widget.season!,
+      episode: ep.number,
     );
-    _webCtrl?.loadUrl(urlRequest: URLRequest(
-      url: WebUri(_currentUrl),
-      headers: {'Referer': 'https://vidsrc.cc/'},
-    ));
+    _webCtrl?.loadUrl(
+      urlRequest: URLRequest(
+        url: WebUri(_currentUrl),
+        headers: {'Referer': 'https://vidsrc.cc/'},
+      ),
+    );
     widget.onEpisodeChange?.call(ep);
   }
 
@@ -192,18 +255,24 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     if (_controlsVisible) {
       _controlsHideTimer?.cancel();
       setState(() => _controlsVisible = false);
-    } else { _showControls(); }
+    } else {
+      _showControls();
+    }
   }
 
   void _toggleFullscreen() {
     // ── KEY FIX: only change orientation/UI mode, never rebuild WebView ──
     if (_isFullscreen) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
       ]);
     }
     setState(() => _isFullscreen = !_isFullscreen);
@@ -212,7 +281,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   }
 
   void _cycleVideoFit() {
-    final next = _VideoFit.values[(_videoFit.index + 1) % _VideoFit.values.length];
+    final next =
+        _VideoFit.values[(_videoFit.index + 1) % _VideoFit.values.length];
     setState(() => _videoFit = next);
     _applyVideoFit(next);
   }
@@ -220,11 +290,13 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   Future<void> _applyVideoFit(_VideoFit fit) async {
     final css = switch (fit) {
       _VideoFit.contain => 'contain',
-      _VideoFit.cover   => 'cover',
-      _VideoFit.fill    => 'fill',
+      _VideoFit.cover => 'cover',
+      _VideoFit.fill => 'fill',
     };
     try {
-      await _webCtrl?.evaluateJavascript(source: '''
+      await _webCtrl?.evaluateJavascript(
+        source:
+            '''
         (function() {
           document.querySelectorAll('video').forEach(function(v) {
             v.style.objectFit = '$css';
@@ -232,27 +304,31 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
             v.style.height = '100%';
           });
         })();
-      ''');
+      ''',
+      );
     } catch (_) {}
   }
 
   IconData get _fitIcon => switch (_videoFit) {
     _VideoFit.contain => Icons.fit_screen_rounded,
-    _VideoFit.cover   => Icons.crop_rounded,
-    _VideoFit.fill    => Icons.fullscreen_rounded,
+    _VideoFit.cover => Icons.crop_rounded,
+    _VideoFit.fill => Icons.fullscreen_rounded,
   };
 
   String get _fitLabel => switch (_videoFit) {
     _VideoFit.contain => 'Fit',
-    _VideoFit.cover   => 'Crop',
-    _VideoFit.fill    => 'Fill',
+    _VideoFit.cover => 'Crop',
+    _VideoFit.fill => 'Fill',
   };
 
   @override
   void dispose() {
     _cancelAutoAdvance(updateState: false);
     _controlsHideTimer?.cancel();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
@@ -284,7 +360,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       ),
       shouldInterceptRequest: (ctrl, request) async {
         final host = request.url.host.toLowerCase();
-        if (_isAdHost(host)) return WebResourceResponse(statusCode: 200, data: Uint8List(0));
+        if (_isAdHost(host))
+          return WebResourceResponse(statusCode: 200, data: Uint8List(0));
         return null;
       },
       onCreateWindow: (ctrl, action) async => false,
@@ -292,12 +369,16 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
         final host = action.request.url?.host.toLowerCase() ?? '';
         if (_isAdHost(host)) return NavigationActionPolicy.CANCEL;
-        if (_isAllowedNavigation(action.request.url)) return NavigationActionPolicy.ALLOW;
+        if (_isAllowedNavigation(action.request.url))
+          return NavigationActionPolicy.ALLOW;
         return NavigationActionPolicy.CANCEL;
       },
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
       onLoadStart: (ctrl, url) {
-        setState(() { _loading = true; _playerAlive = false; });
+        setState(() {
+          _loading = true;
+          _playerAlive = false;
+        });
         _beginAutoAdvance();
       },
       onLoadStop: (ctrl, url) {
@@ -309,10 +390,14 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       },
       onConsoleMessage: (ctrl, msg) {
         final text = msg.message.toLowerCase();
-        if (text.contains('player') || text.contains('hls') ||
-            text.contains('video') || text.contains('stream') ||
-            text.contains('m3u8') || text.contains('jwplayer') ||
-            text.contains('plyr') || text.contains('source')) {
+        if (text.contains('player') ||
+            text.contains('hls') ||
+            text.contains('video') ||
+            text.contains('stream') ||
+            text.contains('m3u8') ||
+            text.contains('jwplayer') ||
+            text.contains('plyr') ||
+            text.contains('source')) {
           _onPlayerAlive();
         }
       },
@@ -323,7 +408,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         }
       },
       onReceivedHttpError: (ctrl, request, response) {
-        if (request.isForMainFrame == true && (response.statusCode ?? 200) >= 400) {
+        if (request.isForMainFrame == true &&
+            (response.statusCode ?? 200) >= 400) {
           _cancelAutoAdvance();
           Future.microtask(_goNextSource);
         }
@@ -333,7 +419,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
 
   Future<void> _injectAdKiller(InAppWebViewController ctrl) async {
     try {
-      await ctrl.evaluateJavascript(source: r'''
+      await ctrl.evaluateJavascript(
+        source: r'''
         (function() {
           window.open = function() { return null; };
           window.alert = function() {};
@@ -368,13 +455,15 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
             { childList: true, subtree: true }
           );
         })();
-      ''');
+      ''',
+      );
     } catch (_) {}
   }
 
   Future<void> _probeForVideo(InAppWebViewController ctrl) async {
     try {
-      final result = await ctrl.evaluateJavascript(source: '''
+      final result = await ctrl.evaluateJavascript(
+        source: '''
         (function() {
           var vids = document.querySelectorAll('video');
           for (var v of vids) {
@@ -382,7 +471,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
           }
           return document.querySelectorAll('iframe').length > 0;
         })();
-      ''');
+      ''',
+      );
       if (result == true) _onPlayerAlive();
     } catch (_) {}
   }
@@ -396,50 +486,60 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        // ── KEY FIX: WebView lives here at the Scaffold body root ────────
-        // It NEVER moves in the widget tree. Only the overlay UI changes.
-        body: _isFullscreen ? _buildFullscreenLayout() : _buildPortraitLayout(),
+        // ── KEY FIX: WebView is built ONCE here at the root, never moves ──
+        // We use a Stack: WebView always fills, UI layers switch on top.
+        body: Stack(
+          children: [
+            // WebView always full-screen in the stack — never rebuilt
+            Positioned.fill(child: _buildWebView()),
+            // Portrait UI layer (hidden in fullscreen)
+            if (!_isFullscreen)
+              Positioned.fill(child: _buildPortraitOverlayUI()),
+            // Fullscreen UI layer
+            if (_isFullscreen)
+              Positioned.fill(child: _buildFullscreenOverlayUI()),
+            // Loading/advance overlay — shown in both modes
+            if (_loading || _autoAdvancing)
+              Positioned.fill(child: _buildOverlay()),
+          ],
+        ),
       ),
     );
   }
 
-  // ── FULLSCREEN: WebView fills screen, controls float on top ─────────────
-  Widget _buildFullscreenLayout() {
-    return Stack(
-      children: [
-        // WebView always fills — built once and kept alive
-        Positioned.fill(child: _buildWebView()),
-        // Loading/advance overlay
-        if (_loading || _autoAdvancing) Positioned.fill(child: _buildOverlay()),
-        // Controls overlay
-        Positioned.fill(child: _buildFullscreenControls()),
-      ],
-    );
+  // ── FULLSCREEN UI: controls float on top of the always-present WebView ──
+  Widget _buildFullscreenOverlayUI() {
+    return _buildFullscreenControls();
   }
 
-  // ── PORTRAIT: WebView in 16:9 box, controls + episode grid below ─────────
-  Widget _buildPortraitLayout() {
+  // ── PORTRAIT UI: black bars + controls below the 16:9 video area ─────────
+  Widget _buildPortraitOverlayUI() {
+    // We need to clip/constrain the WebView to 16:9 and show controls below.
+    // The WebView already fills the whole Stack — we cover the non-video areas.
     return SafeArea(
-      child: SizedBox.expand(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
+      child: Column(
+        children: [
+          _buildTopBar(),
+          // Transparent 16:9 window — lets WebView show through
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(children: [_buildPortraitVideoControls()]),
+          ),
+          // Cover the rest with dark UI
+          Expanded(
+            child: Container(
+              color: AppTheme.darkBg,
+              child: Column(
                 children: [
-                  // Same WebView instance — just positioned differently
-                  Positioned.fill(child: _buildWebView()),
-                  if (_loading || _autoAdvancing) Positioned.fill(child: _buildOverlay()),
-                  _buildPortraitVideoControls(),
+                  _buildControls(),
+                  if (widget.allEpisodes != null &&
+                      widget.allEpisodes!.isNotEmpty)
+                    Expanded(child: _buildEpisodeGrid()),
                 ],
               ),
             ),
-            _buildControls(),
-            if (widget.allEpisodes != null && widget.allEpisodes!.isNotEmpty)
-              Expanded(child: _buildEpisodeGrid()),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -451,20 +551,35 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 18.sp),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.textPrimary,
+              size: 18.sp,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.item.title,
+                Text(
+                  widget.item.title,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 if (_currentEp != null)
-                  Text('S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
-                    style: TextStyle(color: AppTheme.accentOrange, fontSize: 10.sp),
-                    overflow: TextOverflow.ellipsis),
+                  Text(
+                    'S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
+                    style: TextStyle(
+                      color: AppTheme.accentOrange,
+                      fontSize: 10.sp,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
@@ -476,7 +591,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   // Portrait video overlay buttons (fullscreen + fit)
   Widget _buildPortraitVideoControls() {
     return Positioned(
-      bottom: 8.h, right: 8.w,
+      bottom: 8.h,
+      right: 8.w,
       child: Row(
         children: [
           GestureDetector(
@@ -489,11 +605,21 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                 borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(color: Colors.white24),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(_fitIcon, color: Colors.white, size: 16.sp),
-                SizedBox(width: 3.w),
-                Text(_fitLabel, style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w600)),
-              ]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_fitIcon, color: Colors.white, size: 16.sp),
+                  SizedBox(width: 3.w),
+                  Text(
+                    _fitLabel,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           GestureDetector(
@@ -505,11 +631,25 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                 borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(color: Colors.white24),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.fullscreen_rounded, color: Colors.white, size: 18.sp),
-                SizedBox(width: 3.w),
-                Text('Fullscreen', style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-              ]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.fullscreen_rounded,
+                    color: Colors.white,
+                    size: 18.sp,
+                  ),
+                  SizedBox(width: 3.w),
+                  Text(
+                    'Fullscreen',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -526,14 +666,16 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         children: [
           // Always-visible: back button (top-left) + fit button (top-right)
           Positioned(
-            top: 16.h, left: 16.w,
+            top: 16.h,
+            left: 16.w,
             child: GestureDetector(
               onTap: _toggleFullscreen,
               child: _iconBtn(Icons.arrow_back_ios_new_rounded, 'Exit'),
             ),
           ),
           Positioned(
-            top: 16.h, right: 16.w,
+            top: 16.h,
+            right: 16.w,
             child: GestureDetector(
               onTap: _cycleVideoFit,
               child: _iconBtn(_fitIcon, _fitLabel),
@@ -546,7 +688,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
             child: IgnorePointer(
               ignoring: !_controlsVisible,
               child: Positioned(
-                bottom: 20.h, left: 0, right: 0,
+                bottom: 20.h,
+                left: 0,
+                right: 0,
                 child: _buildFullscreenBottomBar(),
               ),
             ),
@@ -564,11 +708,21 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.white24),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Colors.white, size: 16.sp),
-        SizedBox(width: 4.w),
-        Text(label, style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16.sp),
+          SizedBox(width: 4.w),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -584,14 +738,22 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.item.title,
-            style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700),
-            overflow: TextOverflow.ellipsis),
+          Text(
+            widget.item.title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
           if (_currentEp != null) ...[
             SizedBox(height: 2.h),
-            Text('S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
+            Text(
+              'S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
               style: TextStyle(color: AppTheme.accentOrange, fontSize: 10.sp),
-              overflow: TextOverflow.ellipsis),
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
           SizedBox(height: 10.h),
           // Server row + SUB/DUB
@@ -600,38 +762,61 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    Text('Servers:', style: TextStyle(color: Colors.white60, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-                    SizedBox(width: 6.w),
-                    for (int i = 0; i < _sources.length; i++)
-                      Padding(
-                        padding: EdgeInsets.only(right: 4.w),
-                        child: GestureDetector(
-                          onTap: () => _switchSource(i),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                            decoration: BoxDecoration(
-                              color: i == _sourceIndex
-                                  ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange).withOpacity(0.25)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6.r),
-                              border: Border.all(
-                                color: i == _sourceIndex
-                                    ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange)
-                                    : Colors.white30,
-                              ),
-                            ),
-                            child: Text('${i + 1}',
-                              style: TextStyle(
-                                color: i == _sourceIndex
-                                    ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange)
-                                    : Colors.white60,
-                                fontSize: 10.sp, fontWeight: FontWeight.w600)),
-                          ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Servers:',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                  ]),
+                      SizedBox(width: 6.w),
+                      for (int i = 0; i < _sources.length; i++)
+                        Padding(
+                          padding: EdgeInsets.only(right: 4.w),
+                          child: GestureDetector(
+                            onTap: () => _switchSource(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 3.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: i == _sourceIndex
+                                    ? (_playerAlive
+                                              ? AppTheme.accentGreen
+                                              : AppTheme.accentOrange)
+                                          .withOpacity(0.25)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6.r),
+                                border: Border.all(
+                                  color: i == _sourceIndex
+                                      ? (_playerAlive
+                                            ? AppTheme.accentGreen
+                                            : AppTheme.accentOrange)
+                                      : Colors.white30,
+                                ),
+                              ),
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  color: i == _sourceIndex
+                                      ? (_playerAlive
+                                            ? AppTheme.accentGreen
+                                            : AppTheme.accentOrange)
+                                      : Colors.white60,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               SizedBox(width: 8.w),
@@ -652,38 +837,61 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                Text('Servers:', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10.sp, fontWeight: FontWeight.w600)),
-                SizedBox(width: 6.w),
-                for (int i = 0; i < _sources.length; i++)
-                  Padding(
-                    padding: EdgeInsets.only(right: 4.w),
-                    child: GestureDetector(
-                      onTap: () => _switchSource(i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                        decoration: BoxDecoration(
-                          color: i == _sourceIndex
-                              ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange).withOpacity(0.25)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6.r),
-                          border: Border.all(
-                            color: i == _sourceIndex
-                                ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange)
-                                : AppTheme.darkBorder,
-                          ),
-                        ),
-                        child: Text('${i + 1}',
-                          style: TextStyle(
-                            color: i == _sourceIndex
-                                ? (_playerAlive ? AppTheme.accentGreen : AppTheme.accentOrange)
-                                : AppTheme.textSecondary,
-                            fontSize: 10.sp, fontWeight: FontWeight.w600)),
-                      ),
+              child: Row(
+                children: [
+                  Text(
+                    'Servers:',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-              ]),
+                  SizedBox(width: 6.w),
+                  for (int i = 0; i < _sources.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(right: 4.w),
+                      child: GestureDetector(
+                        onTap: () => _switchSource(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 3.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: i == _sourceIndex
+                                ? (_playerAlive
+                                          ? AppTheme.accentGreen
+                                          : AppTheme.accentOrange)
+                                      .withOpacity(0.25)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6.r),
+                            border: Border.all(
+                              color: i == _sourceIndex
+                                  ? (_playerAlive
+                                        ? AppTheme.accentGreen
+                                        : AppTheme.accentOrange)
+                                  : AppTheme.darkBorder,
+                            ),
+                          ),
+                          child: Text(
+                            '${i + 1}',
+                            style: TextStyle(
+                              color: i == _sourceIndex
+                                  ? (_playerAlive
+                                        ? AppTheme.accentGreen
+                                        : AppTheme.accentOrange)
+                                  : AppTheme.textSecondary,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           SizedBox(width: 8.w),
@@ -712,12 +920,18 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
               onTap: () {
                 final newDub = t == 'DUB';
                 if (newDub == _isDub) return;
-                setState(() { _isDub = newDub; _loading = true; _playerAlive = false; });
+                setState(() {
+                  _isDub = newDub;
+                  _loading = true;
+                  _playerAlive = false;
+                });
                 _rebuildSources(dubbed: newDub);
-                _webCtrl?.loadUrl(urlRequest: URLRequest(
-                  url: WebUri(_currentUrl),
-                  headers: {'Referer': 'https://vidsrc.cc/'},
-                ));
+                _webCtrl?.loadUrl(
+                  urlRequest: URLRequest(
+                    url: WebUri(_currentUrl),
+                    headers: {'Referer': 'https://vidsrc.cc/'},
+                  ),
+                );
                 _beginAutoAdvance();
               },
               child: Container(
@@ -726,10 +940,16 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                   color: (t == 'DUB') == _isDub ? activeBg : inactiveBg,
                   borderRadius: BorderRadius.circular(7.r),
                 ),
-                child: Text(t,
+                child: Text(
+                  t,
                   style: TextStyle(
-                    color: (t == 'DUB') == _isDub ? Colors.white : (dark ? Colors.white60 : AppTheme.textSecondary),
-                    fontSize: 10.sp, fontWeight: FontWeight.w700)),
+                    color: (t == 'DUB') == _isDub
+                        ? Colors.white
+                        : (dark ? Colors.white60 : AppTheme.textSecondary),
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
         ],
@@ -738,7 +958,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   }
 
   Widget _buildOverlay() {
-    final exhausted = !_autoAdvancing && !_loading && _sourceIndex >= _sources.length - 1;
+    final exhausted =
+        !_autoAdvancing && !_loading && _sourceIndex >= _sources.length - 1;
     return Container(
       color: Colors.black.withOpacity(0.88),
       child: Center(
@@ -746,40 +967,98 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (exhausted) ...[
-              Icon(Icons.error_outline_rounded, color: AppTheme.accentPink, size: 40.sp),
+              Icon(
+                Icons.error_outline_rounded,
+                color: AppTheme.accentPink,
+                size: 40.sp,
+              ),
               SizedBox(height: 12.h),
-              Text('No working server found',
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 14.sp, fontWeight: FontWeight.w700)),
+              Text(
+                'No working server found',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               SizedBox(height: 6.h),
-              Text('Try again later', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp)),
+              Text(
+                'Try again later',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                ),
+              ),
               SizedBox(height: 14.h),
-              TextButton(onPressed: () => _switchSource(0),
-                child: Text('Retry from server 1', style: TextStyle(color: AppTheme.accentOrange, fontSize: 12.sp))),
+              TextButton(
+                onPressed: () => _switchSource(0),
+                child: Text(
+                  'Retry from server 1',
+                  style: TextStyle(
+                    color: AppTheme.accentOrange,
+                    fontSize: 12.sp,
+                  ),
+                ),
+              ),
             ] else ...[
               SizedBox(
-                width: 36.w, height: 36.h,
+                width: 36.w,
+                height: 36.h,
                 child: CircularProgressIndicator(
-                  color: AppTheme.accentOrange, strokeWidth: 3,
-                  value: _autoAdvancing ? 1 - (_countdown / _kAutoAdvanceDelay.inSeconds) : null),
+                  color: AppTheme.accentOrange,
+                  strokeWidth: 3,
+                  value: _autoAdvancing
+                      ? 1 - (_countdown / _kAutoAdvanceDelay.inSeconds)
+                      : null,
+                ),
               ),
               SizedBox(height: 14.h),
               Text(
                 _loading && !_autoAdvancing
                     ? 'Loading server ${_sourceIndex + 1} of ${_sources.length}...'
                     : 'Server ${_sourceIndex + 1} not responding...',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp)),
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                ),
+              ),
               if (_autoAdvancing) ...[
                 SizedBox(height: 6.h),
-                Text('Trying next in ${_countdown}s',
-                  style: TextStyle(color: AppTheme.accentCyan, fontSize: 13.sp, fontWeight: FontWeight.w800)),
+                Text(
+                  'Trying next in ${_countdown}s',
+                  style: TextStyle(
+                    color: AppTheme.accentCyan,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 SizedBox(height: 10.h),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  TextButton(onPressed: _goNextSource,
-                    child: Text('Skip now', style: TextStyle(color: AppTheme.accentOrange, fontSize: 11.sp))),
-                  SizedBox(width: 8.w),
-                  TextButton(onPressed: _cancelAutoAdvance,
-                    child: Text('Stay here', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp))),
-                ]),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: _goNextSource,
+                      child: Text(
+                        'Skip now',
+                        style: TextStyle(
+                          color: AppTheme.accentOrange,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    TextButton(
+                      onPressed: _cancelAutoAdvance,
+                      child: Text(
+                        'Stay here',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ],
           ],
@@ -793,34 +1072,64 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     return GridView.builder(
       padding: EdgeInsets.all(10.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 6, childAspectRatio: 1.1,
-        crossAxisSpacing: 6.w, mainAxisSpacing: 6.h,
+        crossAxisCount: 6,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 6.w,
+        mainAxisSpacing: 6.h,
       ),
       itemCount: widget.allEpisodes!.length,
       itemBuilder: (ctx, i) {
         final ep = widget.allEpisodes![i];
         final isCurrent = _currentEp?.number == ep.number;
         final isWatched = watchlist.isMediaWatched(
-          widget.item.id, season: widget.season!, episode: ep.number);
+          widget.item.id,
+          season: widget.season!,
+          episode: ep.number,
+        );
         return GestureDetector(
           onTap: () => _playEpisode(ep),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              gradient: isCurrent ? const LinearGradient(
-                colors: [AppTheme.accentOrange, Color(0xFFCC4A00)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
-              color: isCurrent ? null : isWatched ? AppTheme.darkCardElev : AppTheme.darkCard,
+              gradient: isCurrent
+                  ? const LinearGradient(
+                      colors: [AppTheme.accentOrange, Color(0xFFCC4A00)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isCurrent
+                  ? null
+                  : isWatched
+                  ? AppTheme.darkCardElev
+                  : AppTheme.darkCard,
               borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(color: isCurrent ? AppTheme.accentOrange : AppTheme.darkBorder),
+              border: Border.all(
+                color: isCurrent ? AppTheme.accentOrange : AppTheme.darkBorder,
+              ),
               boxShadow: isCurrent
-                  ? [BoxShadow(color: AppTheme.accentOrange.withOpacity(0.5), blurRadius: 8)]
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.accentOrange.withOpacity(0.5),
+                        blurRadius: 8,
+                      ),
+                    ]
                   : null,
             ),
-            child: Center(child: Text('${ep.number}',
-              style: TextStyle(
-                color: isCurrent ? Colors.white : isWatched ? AppTheme.textSecondary : AppTheme.textPrimary,
-                fontSize: 11.sp, fontWeight: FontWeight.w700))),
+            child: Center(
+              child: Text(
+                '${ep.number}',
+                style: TextStyle(
+                  color: isCurrent
+                      ? Colors.white
+                      : isWatched
+                      ? AppTheme.textSecondary
+                      : AppTheme.textPrimary,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
         );
       },
