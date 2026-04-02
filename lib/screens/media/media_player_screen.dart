@@ -15,12 +15,15 @@ final String _kUserAgent = Platform.isIOS
     : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 const _kAllowedHosts = {
-  // ISP-friendly (not blocked on Jio/Airtel) — come first in source list
+  // Ultra-clean verified sources 
+  'vidbinge.dev',
   'vidlink.pro',
-  '2embed.stream', 'www.2embed.stream',
   'embed.su',
-  'multiembed.mov',
-  // vidsrc family (may be DNS-blocked on mobile data)
+  // Regional Aggregators
+  'smashy.stream', 'player.smashy.stream', 'embed.smashystream.com',
+  // vidsrc proxies
+  'vidsrc.xyz', 'vidsrc.net', 'vidsrc.pm', 'vidsrc.in',
+  // Base vidsrc (in case of fallback)
   'vidsrc.cc', 'vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.mov',
 };
 
@@ -183,7 +186,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     _webCtrl?.loadUrl(
       urlRequest: URLRequest(
         url: WebUri(_sources[i]),
-        headers: {'Referer': 'https://vidsrc.cc/'},
       ),
     );
   }
@@ -205,7 +207,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     _webCtrl?.loadUrl(
       urlRequest: URLRequest(
         url: WebUri(_currentUrl),
-        headers: {'Referer': 'https://vidsrc.cc/'},
       ),
     );
     widget.onEpisodeChange?.call(ep);
@@ -265,15 +266,13 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     return InAppWebView(
       initialUrlRequest: URLRequest(
         url: WebUri(_currentUrl),
-        headers: {'Referer': 'https://vidsrc.cc/'},
       ),
       initialSettings: InAppWebViewSettings(
         userAgent: _kUserAgent,
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         javaScriptEnabled: true,
-        useHybridComposition: true,
-        supportMultipleWindows: false,
+        supportMultipleWindows: true,
         javaScriptCanOpenWindowsAutomatically: false,
         cacheEnabled: false,
         clearCache: true,
@@ -283,6 +282,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         displayZoomControls: false,
         useWideViewPort: true,
         loadWithOverviewMode: true,
+        allowFileAccessFromFileURLs: true,
+        allowUniversalAccessFromFileURLs: true,
+        mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+        thirdPartyCookiesEnabled: true,
       ),
       shouldInterceptRequest: (ctrl, request) async {
         final host = request.url.host.toLowerCase();
@@ -349,6 +352,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       await ctrl.evaluateJavascript(
         source: r'''
         (function() {
+          if (window._adKillerInjected) return;
+          window._adKillerInjected = true;
           window.open = function() { return null; };
           window.alert = function() {};
           window.confirm = function() { return false; };
@@ -392,15 +397,52 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       final result = await ctrl.evaluateJavascript(
         source: '''
         (function() {
+          var title = document.title ? document.title.toLowerCase() : '';
+          var text = document.body ? document.body.innerText.toLowerCase() : '';
+          
+          if (title.includes('just a moment') || 
+              text.includes('checking your browser') || 
+              text.includes('verify you are human')) {
+            return 'cloudflare';
+          }
+
+          if (text.includes('not found') || 
+              text.includes('media is not available') || 
+              text.includes('check later') ||
+              text.includes('404 ') ||
+              text.includes('webpage not available') ||
+              text.includes('no video with supported format')) {
+            return 'error';
+          }
+          
           var vids = document.querySelectorAll('video');
           for (var v of vids) {
-            if (v.src || v.currentSrc || v.querySelector('source')) return true;
+            if (v.src || v.currentSrc || v.querySelector('source')) return 'video';
           }
-          return document.querySelectorAll('iframe').length > 0;
+          
+          var iframes = document.querySelectorAll('iframe');
+          for (var i of iframes) {
+             var s = i.src.toLowerCase();
+             // Ignore pure ad/analytics iframes 
+             if (s && !s.includes('ad') && !s.includes('google') && !s.includes('analytics') && !s.includes('pop')) {
+               return 'video';
+             }
+          }
+          return 'none';
         })();
       ''',
       );
-      if (result == true) _onPlayerAlive();
+      
+      if (result == 'cloudflare') {
+        debugPrint('[MEDIA] Cloudflare verification detected. Halting auto-skip timer to let user solve it.');
+        _cancelAutoAdvance(updateState: true);
+      } else if (result == 'error') {
+        debugPrint('[MEDIA] Server reported error page natively. Skipping automatically.');
+        _cancelAutoAdvance();
+        Future.microtask(_goNextSource);
+      } else if (result == 'video') {
+        _onPlayerAlive();
+      }
     } catch (_) {}
   }
 

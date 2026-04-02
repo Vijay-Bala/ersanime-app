@@ -182,7 +182,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _webCtrl?.loadUrl(
       urlRequest: URLRequest(
         url: WebUri(_sources[i]),
-        headers: {'Referer': 'https://vidnest.fun/'},
       ),
     );
   }
@@ -199,7 +198,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _webCtrl?.loadUrl(
       urlRequest: URLRequest(
         url: WebUri(_currentUrl),
-        headers: {'Referer': 'https://vidnest.fun/'},
       ),
     );
   }
@@ -258,19 +256,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return InAppWebView(
       initialUrlRequest: URLRequest(
         url: WebUri(_currentUrl),
-        headers: {'Referer': 'https://vidnest.fun/'},
       ),
       initialSettings: InAppWebViewSettings(
         userAgent: _kUserAgent,
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         javaScriptEnabled: true,
-        useHybridComposition: true,
-        supportMultipleWindows: !Platform.isIOS,
+        supportMultipleWindows: true,
         javaScriptCanOpenWindowsAutomatically: false,
-        cacheEnabled: false,
-        clearCache: true,
+        cacheEnabled: true,
         useShouldInterceptRequest: true,
+        supportZoom: true,
+        builtInZoomControls: false,
+        displayZoomControls: false,
+        useWideViewPort: true,
+        loadWithOverviewMode: true,
+        allowFileAccessFromFileURLs: true,
+        allowUniversalAccessFromFileURLs: true,
+        mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+        thirdPartyCookiesEnabled: true,
       ),
       shouldInterceptRequest: (ctrl, request) async {
         final host = request.url.host.toLowerCase();
@@ -337,6 +341,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       await ctrl.evaluateJavascript(
         source: r'''
         (function() {
+          if (window._adKillerInjected) return;
+          window._adKillerInjected = true;
           window.open = function() { return null; };
           window.alert = function() {};
           window.confirm = function() { return false; };
@@ -377,15 +383,51 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final result = await ctrl.evaluateJavascript(
         source: '''
         (function() {
+          var title = document.title ? document.title.toLowerCase() : '';
+          var text = document.body ? document.body.innerText.toLowerCase() : '';
+          
+          if (title.includes('just a moment') || 
+              text.includes('checking your browser') || 
+              text.includes('verify you are human')) {
+            return 'cloudflare';
+          }
+
+          if (text.includes('not found') || 
+              text.includes('media is not available') || 
+              text.includes('check later') ||
+              text.includes('404 ') ||
+              text.includes('webpage not available') ||
+              text.includes('no video with supported format')) {
+            return 'error';
+          }
+          
           var vids = document.querySelectorAll('video');
           for (var v of vids) {
-            if (v.src || v.currentSrc || v.querySelector('source')) return true;
+            if (v.src || v.currentSrc || v.querySelector('source')) return 'video';
           }
-          return document.querySelectorAll('iframe').length > 0;
+          
+          var iframes = document.querySelectorAll('iframe');
+          for (var i of iframes) {
+             var s = i.src.toLowerCase();
+             if (s && !s.includes('ad') && !s.includes('google') && !s.includes('analytics') && !s.includes('pop')) {
+               return 'video';
+             }
+          }
+          return 'none';
         })();
       ''',
       );
-      if (result == true) _onPlayerAlive();
+      
+      if (result == 'cloudflare') {
+        debugPrint('[ANIME] Cloudflare verification detected. Halting auto-skip timer to let user solve it.');
+        _cancelAutoAdvance(updateState: true);
+      } else if (result == 'error') {
+        debugPrint('[ANIME] Server reported error page natively. Skipping automatically.');
+        _cancelAutoAdvance();
+        Future.microtask(_goNextSource);
+      } else if (result == 'video') {
+        _onPlayerAlive();
+      }
     } catch (_) {}
   }
 

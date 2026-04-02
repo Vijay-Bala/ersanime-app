@@ -164,53 +164,36 @@ Future<List<MediaItem>> discoverByGenre(
 
 /// Returns embed URLs for a movie.
 ///
-/// Source priority tuned for Indian ISPs (Jio/Airtel/BSNL) — April 2026:
-///  1. vidlink.pro  — NOT blocked by Indian ISPs, multi-audio, clean UI
-///  2. 2embed.stream — NOT typically blocked, good for English/Hindi/Tamil
-///  3. embed.su     — Consistent uptime, not ISP-blocked
-///  4. vidsrc.xyz   — Alt domain for vidsrc family, less likely to be blocked
-///  5. multiembed.mov — Aggregator, auto-tries multiple CDNs
-///  6. vidsrc.cc    — Sometimes blocked on Jio/Airtel via DNS
-///  7. vidsrc.to    — Sometimes blocked on Jio/Airtel via DNS
-///  8. vidsrc.me    — Older mirror, sometimes accessible when others aren't
-///  9. vidsrc.icu   — Mirror, varies by ISP
-/// 10. vidsrc.mov   — Clean API, 1080p quality
+/// Source priority tuned STRICTLY for No-Ads & No-Captchas UI:
+///  1. vidlink.pro  — Multi-audio, pristine UI, no video ads. Fast 404 skips natively. (Primary reliable source)
+///  2. vidsrc.in    — Fresh Vidsrc mirror; strongly unblocked in India.
+///  3. smashy.stream — Excellent Indian regional database aggregator without Cloudflare.
+///  4. vidsrc.pm    — Alternate premium proxy.
+///  5. embed.su     — Highly stable, lightweight ad-free UI.
 List<String> getMovieEmbedUrls(int tmdbId, {bool dubbed = false}) {
   final vidlinkMovie =
       'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35';
   return [
-    // ── ISP-friendly sources first (not blocked on Jio/Airtel) ──
     vidlinkMovie,
-    'https://www.2embed.stream/embed/movie/$tmdbId',
+    'https://vidsrc.in/embed/movie/$tmdbId',
+    'https://player.smashy.stream/movie/$tmdbId?tmdb=1',
+    'https://vidsrc.pm/embed/movie/$tmdbId',
     'https://embed.su/embed/movie/$tmdbId',
-    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1',
-    // ── vidsrc family (may be DNS-blocked on mobile data) ──
-    'https://vidsrc.cc/v2/embed/movie/$tmdbId',
-    'https://vidsrc.to/embed/movie/$tmdbId',
-    'https://vidsrc.me/embed/movie?tmdb=$tmdbId',
-    'https://vidsrc.icu/embed/movie/$tmdbId',
-    'https://vidsrc.mov/embed/movie/$tmdbId',
   ];
 }
 
 /// Returns embed URLs for a TV episode.
-/// Same ISP-aware ordering as movies.
+/// Same strict No-Ads / No-Captcha priority as movies.
 List<String> getTvEmbedUrls(int tmdbId, int season, int episode,
     {bool dubbed = false}) {
   final vidlinkTv =
       'https://vidlink.pro/tv/$tmdbId/$season/$episode?autoplay=true&primaryColor=FF6B35';
   return [
-    // ── ISP-friendly sources first ──
     vidlinkTv,
-    'https://www.2embed.stream/embed/tv/$tmdbId/$season/$episode',
+    'https://vidsrc.in/embed/tv/$tmdbId/$season/$episode',
+    'https://player.smashy.stream/tv/$tmdbId?s=$season&e=$episode',
+    'https://vidsrc.pm/embed/tv/$tmdbId/$season/$episode',
     'https://embed.su/embed/tv/$tmdbId/$season/$episode',
-    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1&s=$season&e=$episode',
-    // ── vidsrc family (may be DNS-blocked on mobile data) ──
-    'https://vidsrc.cc/v2/embed/tv/$tmdbId/$season/$episode',
-    'https://vidsrc.to/embed/tv/$tmdbId/$season/$episode',
-    'https://vidsrc.me/embed/tv?tmdb=$tmdbId&season=$season&episode=$episode',
-    'https://vidsrc.icu/embed/tv/$tmdbId/$season/$episode',
-    'https://vidsrc.mov/embed/tv/$tmdbId/$season/$episode',
   ];
 }
 
