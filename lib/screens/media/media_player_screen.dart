@@ -15,52 +15,26 @@ final String _kUserAgent = Platform.isIOS
     : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 const _kAllowedHosts = {
-  'vidsrc.cc',
-  'vidsrc.to',
-  'vidsrc.me',
-  'vidsrc.icu',
-  'vidsrc.mov',
+  // ISP-friendly (not blocked on Jio/Airtel) — come first in source list
+  'vidlink.pro',
+  '2embed.stream', 'www.2embed.stream',
   'embed.su',
   'multiembed.mov',
-  'vidlink.pro',
-  '2embed.stream',
-  'www.2embed.stream',
+  // vidsrc family (may be DNS-blocked on mobile data)
+  'vidsrc.cc', 'vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.mov',
 };
 
 const _kAdHosts = {
-  'adexchangeclear.com',
-  'usrpubtrk.com',
-  'acscdn.com',
-  'ieenhijxbigyt.space',
-  'cloudnestra.com',
-  'vsembed.ru',
-  'doubleclick.net',
-  'googlesyndication.com',
-  'googletagmanager.com',
-  'googletagservices.com',
-  'google-analytics.com',
-  'adservice.google.com',
-  'amazon-adsystem.com',
-  'outbrain.com',
-  'taboola.com',
-  'popads.net',
-  'popcash.net',
-  'propellerads.com',
-  'adsterra.com',
-  'trafficjunky.com',
-  'exoclick.com',
-  'juicyads.com',
-  'trafficfactory.biz',
-  'hilltopads.net',
-  'ero-advertising.com',
-  'adnxs.com',
-  'advertising.com',
-  'criteo.com',
-  'rubiconproject.com',
-  'openx.net',
-  'pubmatic.com',
-  'smartadserver.com',
-  'imasdk.googleapis.com',
+  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
+  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
+  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
+  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
+  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
+  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
+  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
+  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
+  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
+  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -74,9 +48,6 @@ bool _isAllowedNavigation(WebUri? uri) {
 }
 
 const _kAutoAdvanceDelay = Duration(seconds: 12);
-
-// Video fit modes for zoom controls
-enum _VideoFit { contain, cover, fill }
 
 class MediaPlayerScreen extends StatefulWidget {
   final MediaItem item;
@@ -117,12 +88,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   bool _controlsVisible = true;
   Timer? _controlsHideTimer;
 
-  // ── KEY FIX: WebView controller kept alive — never rebuilt on fullscreen ──
+  // WebView built ONCE in initState, stored as a field
+  late Widget _webViewWidget;
   InAppWebViewController? _webCtrl;
-  // Track current URL independently so we can reload if needed
-
-  // Zoom / fit
-  _VideoFit _videoFit = _VideoFit.contain;
 
   @override
   void initState() {
@@ -130,6 +98,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     _currentEp = widget.episode;
     _isDub = widget.startDubbed;
     _sources = List.from(widget.embedUrls);
+    _webViewWidget = _buildWebView();
   }
 
   String get _currentUrl => _sources[_sourceIndex];
@@ -193,13 +162,14 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   void _goNextSource() {
     if (!mounted) return;
     final next = _sourceIndex + 1;
-    if (next < _sources.length)
+    if (next < _sources.length) {
       _switchSource(next);
-    else
+    } else {
       setState(() {
         _autoAdvancing = false;
         _loading = false;
       });
+    }
   }
 
   void _switchSource(int i) {
@@ -245,7 +215,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     _controlsHideTimer?.cancel();
     setState(() => _controlsVisible = true);
     if (_playerAlive) {
-      _controlsHideTimer = Timer(const Duration(seconds: 4), () {
+      _controlsHideTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _controlsVisible = false);
       });
     }
@@ -261,7 +231,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   }
 
   void _toggleFullscreen() {
-    // ── KEY FIX: only change orientation/UI mode, never rebuild WebView ──
     if (_isFullscreen) {
       SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.manual,
@@ -276,50 +245,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       ]);
     }
     setState(() => _isFullscreen = !_isFullscreen);
-    // Re-show controls briefly after switching
     _showControls();
   }
-
-  void _cycleVideoFit() {
-    final next =
-        _VideoFit.values[(_videoFit.index + 1) % _VideoFit.values.length];
-    setState(() => _videoFit = next);
-    _applyVideoFit(next);
-  }
-
-  Future<void> _applyVideoFit(_VideoFit fit) async {
-    final css = switch (fit) {
-      _VideoFit.contain => 'contain',
-      _VideoFit.cover => 'cover',
-      _VideoFit.fill => 'fill',
-    };
-    try {
-      await _webCtrl?.evaluateJavascript(
-        source:
-            '''
-        (function() {
-          document.querySelectorAll('video').forEach(function(v) {
-            v.style.objectFit = '$css';
-            v.style.width = '100%';
-            v.style.height = '100%';
-          });
-        })();
-      ''',
-      );
-    } catch (_) {}
-  }
-
-  IconData get _fitIcon => switch (_videoFit) {
-    _VideoFit.contain => Icons.fit_screen_rounded,
-    _VideoFit.cover => Icons.crop_rounded,
-    _VideoFit.fill => Icons.fullscreen_rounded,
-  };
-
-  String get _fitLabel => switch (_videoFit) {
-    _VideoFit.contain => 'Fit',
-    _VideoFit.cover => 'Crop',
-    _VideoFit.fill => 'Fill',
-  };
 
   @override
   void dispose() {
@@ -333,7 +260,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     super.dispose();
   }
 
-  // ── The WebView — built ONCE, never recreated ────────────────────────────
+  // ── WebView built ONCE in initState ─────────────────────────────────────
   Widget _buildWebView() {
     return InAppWebView(
       initialUrlRequest: URLRequest(
@@ -351,7 +278,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         cacheEnabled: false,
         clearCache: true,
         useShouldInterceptRequest: true,
-        // Allow pinch-to-zoom inside the WebView
         supportZoom: true,
         builtInZoomControls: false,
         displayZoomControls: false,
@@ -375,6 +301,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       },
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
       onLoadStart: (ctrl, url) {
+        debugPrint('[MEDIA] Load start → $url');
         setState(() {
           _loading = true;
           _playerAlive = false;
@@ -382,11 +309,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         _beginAutoAdvance();
       },
       onLoadStop: (ctrl, url) {
+        debugPrint('[MEDIA] Load stop → $url');
         setState(() => _loading = false);
         _probeForVideo(ctrl);
         _injectAdKiller(ctrl);
-        // Re-apply fit when new page loads
-        _applyVideoFit(_videoFit);
       },
       onConsoleMessage: (ctrl, msg) {
         final text = msg.message.toLowerCase();
@@ -402,6 +328,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         }
       },
       onReceivedError: (ctrl, request, error) {
+        debugPrint('[MEDIA] Error: ${error.description}');
         if (request.isForMainFrame == true) {
           _cancelAutoAdvance();
           Future.microtask(_goNextSource);
@@ -485,60 +412,207 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         if (!didPop && _isFullscreen) _toggleFullscreen();
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
-        // ── KEY FIX: WebView is built ONCE here at the root, never moves ──
-        // We use a Stack: WebView always fills, UI layers switch on top.
-        body: Stack(
-          children: [
-            // WebView always full-screen in the stack — never rebuilt
-            Positioned.fill(child: _buildWebView()),
-            // Portrait UI layer (hidden in fullscreen)
-            if (!_isFullscreen)
-              Positioned.fill(child: _buildPortraitOverlayUI()),
-            // Fullscreen UI layer
-            if (_isFullscreen)
-              Positioned.fill(child: _buildFullscreenOverlayUI()),
-            // Loading/advance overlay — shown in both modes
-            if (_loading || _autoAdvancing)
-              Positioned.fill(child: _buildOverlay()),
-          ],
-        ),
+        backgroundColor: _isFullscreen ? Colors.black : AppTheme.darkBg,
+        body: _isFullscreen ? _buildFullscreen() : _buildPortrait(),
       ),
     );
   }
 
-  // ── FULLSCREEN UI: controls float on top of the always-present WebView ──
-  Widget _buildFullscreenOverlayUI() {
-    return _buildFullscreenControls();
-  }
-
-  // ── PORTRAIT UI: black bars + controls below the 16:9 video area ─────────
-  Widget _buildPortraitOverlayUI() {
-    // We need to clip/constrain the WebView to 16:9 and show controls below.
-    // The WebView already fills the whole Stack — we cover the non-video areas.
+  // ── PORTRAIT: WebView in AspectRatio — correct sizing ───────────────────
+  Widget _buildPortrait() {
     return SafeArea(
       child: Column(
         children: [
           _buildTopBar(),
-          // Transparent 16:9 window — lets WebView show through
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(children: [_buildPortraitVideoControls()]),
-          ),
-          // Cover the rest with dark UI
-          Expanded(
-            child: Container(
-              color: AppTheme.darkBg,
-              child: Column(
+          _buildPlayerBox(),
+          _buildControls(),
+          if (widget.allEpisodes != null && widget.allEpisodes!.isNotEmpty)
+            Expanded(child: _buildEpisodeGrid()),
+        ],
+      ),
+    );
+  }
+
+  // ── FULLSCREEN: WebView fills the entire screen ──────────────────────────
+  Widget _buildFullscreen() {
+    return Container(
+      color: Colors.black,
+      child: Stack(
+        children: [
+          Positioned.fill(child: _webViewWidget),
+          if (_loading || _autoAdvancing) _buildOverlay(),
+
+          // Fade-able controls
+          AnimatedOpacity(
+            opacity: _controlsVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 250),
+            child: IgnorePointer(
+              ignoring: !_controlsVisible,
+              child: Stack(
                 children: [
-                  _buildControls(),
-                  if (widget.allEpisodes != null &&
-                      widget.allEpisodes!.isNotEmpty)
-                    Expanded(child: _buildEpisodeGrid()),
+                  // Tap anywhere to toggle
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleControls,
+                      behavior: HitTestBehavior.translucent,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                  // Exit fullscreen (top-left)
+                  Positioned(
+                    top: 16.h,
+                    left: 16.w,
+                    child: GestureDetector(
+                      onTap: _toggleFullscreen,
+                      behavior: HitTestBehavior.opaque,
+                      child: _iconBtn(
+                        Icons.fullscreen_exit_rounded,
+                        'Exit Fullscreen',
+                      ),
+                    ),
+                  ),
+                  // Title + episode info (bottom)
+                  Positioned(
+                    bottom: 20.h,
+                    left: 16.w,
+                    right: 16.w,
+                    child: _buildFullscreenInfo(),
+                  ),
                 ],
               ),
             ),
           ),
+
+          // Touch hint when controls are hidden
+          if (!_controlsVisible && !_loading && !_autoAdvancing)
+            Positioned(
+              top: 12.h,
+              left: 12.w,
+              child: GestureDetector(
+                onTap: _showControls,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: Colors.black38,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Icon(
+                    Icons.touch_app_rounded,
+                    color: Colors.white38,
+                    size: 16.sp,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Portrait video player box: WebView in a 16:9 AspectRatio
+  Widget _buildPlayerBox() {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          _webViewWidget,
+          if (_loading || _autoAdvancing) _buildOverlay(),
+          // Fullscreen button
+          Positioned(
+            bottom: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: _toggleFullscreen,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 18.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'Fullscreen',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 18.sp),
+          SizedBox(width: 6.w),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullscreenInfo() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.item.title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (_currentEp != null) ...[
+            SizedBox(height: 2.h),
+            Text(
+              'S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
+              style: TextStyle(color: AppTheme.accentOrange, fontSize: 10.sp),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
@@ -582,246 +656,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                   ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Portrait video overlay buttons (fullscreen + fit)
-  Widget _buildPortraitVideoControls() {
-    return Positioned(
-      bottom: 8.h,
-      right: 8.w,
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _cycleVideoFit,
-            child: Container(
-              padding: EdgeInsets.all(6.w),
-              margin: EdgeInsets.only(right: 6.w),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(_fitIcon, color: Colors.white, size: 16.sp),
-                  SizedBox(width: 3.w),
-                  Text(
-                    _fitLabel,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: _toggleFullscreen,
-            child: Container(
-              padding: EdgeInsets.all(6.w),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.fullscreen_rounded,
-                    color: Colors.white,
-                    size: 18.sp,
-                  ),
-                  SizedBox(width: 3.w),
-                  Text(
-                    'Fullscreen',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Fullscreen controls: tap anywhere to toggle, back + fit buttons always visible
-  Widget _buildFullscreenControls() {
-    return GestureDetector(
-      onTap: _toggleControls,
-      behavior: HitTestBehavior.translucent,
-      child: Stack(
-        children: [
-          // Always-visible: back button (top-left) + fit button (top-right)
-          Positioned(
-            top: 16.h,
-            left: 16.w,
-            child: GestureDetector(
-              onTap: _toggleFullscreen,
-              child: _iconBtn(Icons.arrow_back_ios_new_rounded, 'Exit'),
-            ),
-          ),
-          Positioned(
-            top: 16.h,
-            right: 16.w,
-            child: GestureDetector(
-              onTap: _cycleVideoFit,
-              child: _iconBtn(_fitIcon, _fitLabel),
-            ),
-          ),
-          // Fade-in controls when tapped
-          AnimatedOpacity(
-            opacity: _controlsVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 250),
-            child: IgnorePointer(
-              ignoring: !_controlsVisible,
-              child: Positioned(
-                bottom: 20.h,
-                left: 0,
-                right: 0,
-                child: _buildFullscreenBottomBar(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconBtn(IconData icon, String label) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.65),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16.sp),
-          SizedBox(width: 4.w),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFullscreenBottomBar() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.75),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.item.title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w700,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (_currentEp != null) ...[
-            SizedBox(height: 2.h),
-            Text(
-              'S${widget.season} E${_currentEp!.number}: ${_currentEp!.name}',
-              style: TextStyle(color: AppTheme.accentOrange, fontSize: 10.sp),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          SizedBox(height: 10.h),
-          // Server row + SUB/DUB
-          Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      Text(
-                        'Servers:',
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(width: 6.w),
-                      for (int i = 0; i < _sources.length; i++)
-                        Padding(
-                          padding: EdgeInsets.only(right: 4.w),
-                          child: GestureDetector(
-                            onTap: () => _switchSource(i),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8.w,
-                                vertical: 3.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: i == _sourceIndex
-                                    ? (_playerAlive
-                                              ? AppTheme.accentGreen
-                                              : AppTheme.accentOrange)
-                                          .withOpacity(0.25)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6.r),
-                                border: Border.all(
-                                  color: i == _sourceIndex
-                                      ? (_playerAlive
-                                            ? AppTheme.accentGreen
-                                            : AppTheme.accentOrange)
-                                      : Colors.white30,
-                                ),
-                              ),
-                              child: Text(
-                                '${i + 1}',
-                                style: TextStyle(
-                                  color: i == _sourceIndex
-                                      ? (_playerAlive
-                                            ? AppTheme.accentGreen
-                                            : AppTheme.accentOrange)
-                                      : Colors.white60,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              _buildSubDubToggle(dark: true),
-            ],
           ),
         ],
       ),
@@ -901,16 +735,12 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     );
   }
 
-  Widget _buildSubDubToggle({bool dark = false}) {
-    final activeBg = dark ? AppTheme.accentOrange : AppTheme.accentOrange;
-    final inactiveBg = dark ? Colors.transparent : Colors.transparent;
-    final inactiveBorder = dark ? Colors.white30 : AppTheme.darkBorder;
-    final cardBg = dark ? Colors.white12 : AppTheme.darkCard;
+  Widget _buildSubDubToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: cardBg,
+        color: AppTheme.darkCard,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: inactiveBorder),
+        border: Border.all(color: AppTheme.darkBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -937,7 +767,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: (t == 'DUB') == _isDub ? activeBg : inactiveBg,
+                  color: (t == 'DUB') == _isDub
+                      ? AppTheme.accentOrange
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(7.r),
                 ),
                 child: Text(
@@ -945,7 +777,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                   style: TextStyle(
                     color: (t == 'DUB') == _isDub
                         ? Colors.white
-                        : (dark ? Colors.white60 : AppTheme.textSecondary),
+                        : AppTheme.textSecondary,
                     fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                   ),

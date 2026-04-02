@@ -164,49 +164,52 @@ Future<List<MediaItem>> discoverByGenre(
 
 /// Returns embed URLs for a movie.
 ///
-/// Source priority (research-verified, March 2026):
-///  1. vidsrc.cc   — largest DB, most servers, best for regional content
-///  2. vidlink.pro — multi-audio player (SUB/DUB switching built-in), clean UI
-///  3. vidsrc.to   — reliable fallback, same DB as vidsrc.cc
-///  4. 2embed.stream — good for English + Hindi content
-///  5. embed.su    — consistent uptime
-///  6. vidsrc.me   — older but wide catalogue
-///  7. vidsrc.icu  — mirror of vidsrc family
-///  8. multiembed.mov — aggregator, auto-tries multiple providers
-///  9. vidsrc.mov  — clean API, good 1080p quality
+/// Source priority tuned for Indian ISPs (Jio/Airtel/BSNL) — April 2026:
+///  1. vidlink.pro  — NOT blocked by Indian ISPs, multi-audio, clean UI
+///  2. 2embed.stream — NOT typically blocked, good for English/Hindi/Tamil
+///  3. embed.su     — Consistent uptime, not ISP-blocked
+///  4. vidsrc.xyz   — Alt domain for vidsrc family, less likely to be blocked
+///  5. multiembed.mov — Aggregator, auto-tries multiple CDNs
+///  6. vidsrc.cc    — Sometimes blocked on Jio/Airtel via DNS
+///  7. vidsrc.to    — Sometimes blocked on Jio/Airtel via DNS
+///  8. vidsrc.me    — Older mirror, sometimes accessible when others aren't
+///  9. vidsrc.icu   — Mirror, varies by ISP
+/// 10. vidsrc.mov   — Clean API, 1080p quality
 List<String> getMovieEmbedUrls(int tmdbId, {bool dubbed = false}) {
-  // vidlink.pro supports dubbed audio via its built-in audio track switcher.
-  // The ?primaryColor param removes the default blue tint, &autoplay=true helps.
-  final vidlinkMovie = dubbed
-      ? 'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35'
-      : 'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35';
+  final vidlinkMovie =
+      'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35';
   return [
-    'https://vidsrc.cc/v2/embed/movie/$tmdbId',
+    // ── ISP-friendly sources first (not blocked on Jio/Airtel) ──
     vidlinkMovie,
-    'https://vidsrc.to/embed/movie/$tmdbId',
     'https://www.2embed.stream/embed/movie/$tmdbId',
     'https://embed.su/embed/movie/$tmdbId',
+    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1',
+    // ── vidsrc family (may be DNS-blocked on mobile data) ──
+    'https://vidsrc.cc/v2/embed/movie/$tmdbId',
+    'https://vidsrc.to/embed/movie/$tmdbId',
     'https://vidsrc.me/embed/movie?tmdb=$tmdbId',
     'https://vidsrc.icu/embed/movie/$tmdbId',
-    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1',
     'https://vidsrc.mov/embed/movie/$tmdbId',
   ];
 }
 
 /// Returns embed URLs for a TV episode.
+/// Same ISP-aware ordering as movies.
 List<String> getTvEmbedUrls(int tmdbId, int season, int episode,
     {bool dubbed = false}) {
   final vidlinkTv =
       'https://vidlink.pro/tv/$tmdbId/$season/$episode?autoplay=true&primaryColor=FF6B35';
   return [
-    'https://vidsrc.cc/v2/embed/tv/$tmdbId/$season/$episode',
+    // ── ISP-friendly sources first ──
     vidlinkTv,
-    'https://vidsrc.to/embed/tv/$tmdbId/$season/$episode',
     'https://www.2embed.stream/embed/tv/$tmdbId/$season/$episode',
     'https://embed.su/embed/tv/$tmdbId/$season/$episode',
+    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1&s=$season&e=$episode',
+    // ── vidsrc family (may be DNS-blocked on mobile data) ──
+    'https://vidsrc.cc/v2/embed/tv/$tmdbId/$season/$episode',
+    'https://vidsrc.to/embed/tv/$tmdbId/$season/$episode',
     'https://vidsrc.me/embed/tv?tmdb=$tmdbId&season=$season&episode=$episode',
     'https://vidsrc.icu/embed/tv/$tmdbId/$season/$episode',
-    'https://multiembed.mov/?video_id=$tmdbId&tmdb=1&s=$season&e=$episode',
     'https://vidsrc.mov/embed/tv/$tmdbId/$season/$episode',
   ];
 }

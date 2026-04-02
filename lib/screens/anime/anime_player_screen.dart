@@ -22,47 +22,24 @@ const _kAllowedHosts = {
   'vidnest.fun', 'nhdapi.xyz',
   'allaniurl.xyz', '9animetv.to',
   'animepahe.ru', 'animepahe.com', 'animepahe.org',
-  'kwik.si', 'kwik.cx', // animepahe CDN
-  'filemoon.sx', 'filemoon.to', // aniwave server
-  'mp4upload.com', // aniwave server
-  'streamwish.com', 'streamwish.to', // aniwave server
-  'vidstreaming.io', 'gogoanime.gg', // aniwave/gogoanime CDN
+  'kwik.si', 'kwik.cx',
+  'filemoon.sx', 'filemoon.to',
+  'mp4upload.com',
+  'streamwish.com', 'streamwish.to',
+  'vidstreaming.io', 'gogoanime.gg',
 };
 
 const _kAdHosts = {
-  'adexchangeclear.com',
-  'usrpubtrk.com',
-  'acscdn.com',
-  'ieenhijxbigyt.space',
-  'cloudnestra.com',
-  'vsembed.ru',
-  'doubleclick.net',
-  'googlesyndication.com',
-  'googletagmanager.com',
-  'googletagservices.com',
-  'google-analytics.com',
-  'adservice.google.com',
-  'amazon-adsystem.com',
-  'outbrain.com',
-  'taboola.com',
-  'popads.net',
-  'popcash.net',
-  'propellerads.com',
-  'adsterra.com',
-  'trafficjunky.com',
-  'exoclick.com',
-  'juicyads.com',
-  'trafficfactory.biz',
-  'hilltopads.net',
-  'ero-advertising.com',
-  'adnxs.com',
-  'advertising.com',
-  'criteo.com',
-  'rubiconproject.com',
-  'openx.net',
-  'pubmatic.com',
-  'smartadserver.com',
-  'imasdk.googleapis.com',
+  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
+  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
+  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
+  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
+  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
+  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
+  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
+  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
+  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
+  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -110,7 +87,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _controlsVisible = true;
   Timer? _controlsHideTimer;
 
-  // ── KEY FIX: controller kept alive, never recreated on fullscreen ──
+  // WebView built ONCE, stored as a field — never recreated
+  late Widget _webViewWidget;
   InAppWebViewController? _webCtrl;
 
   @override
@@ -118,6 +96,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.initState();
     _currentEp = widget.episode;
     _buildSources();
+    _webViewWidget = _buildWebView();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WatchlistService>().markWatched(
         widget.anime.id,
@@ -182,13 +161,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _goNextSource() {
     if (!mounted) return;
     final next = _sourceIndex + 1;
-    if (next < _sources.length)
+    if (next < _sources.length) {
       _switchSource(next);
-    else
+    } else {
       setState(() {
         _autoAdvancing = false;
         _loading = false;
       });
+    }
   }
 
   void _switchSource(int i) {
@@ -228,7 +208,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _controlsHideTimer?.cancel();
     setState(() => _controlsVisible = true);
     if (_playerAlive) {
-      _controlsHideTimer = Timer(const Duration(seconds: 4), () {
+      _controlsHideTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _controlsVisible = false);
       });
     }
@@ -244,7 +224,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _toggleFullscreen() {
-    // ── KEY FIX: only change orientation/UI mode, never rebuild WebView ──
     if (_isFullscreen) {
       SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.manual,
@@ -274,7 +253,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.dispose();
   }
 
-  // ── WebView built once, never recreated ─────────────────────────────────
+  // ── WebView built ONCE in initState, referenced here ────────────────────
   Widget _buildWebView() {
     return InAppWebView(
       initialUrlRequest: URLRequest(
@@ -286,7 +265,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         javaScriptEnabled: true,
-        useHybridComposition: !Platform.isIOS,
+        useHybridComposition: true,
         supportMultipleWindows: !Platform.isIOS,
         javaScriptCanOpenWindowsAutomatically: false,
         cacheEnabled: false,
@@ -310,6 +289,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       },
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
       onLoadStart: (ctrl, url) {
+        debugPrint('[ANIME] Load start → $url');
         setState(() {
           _loading = true;
           _playerAlive = false;
@@ -317,6 +297,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _beginAutoAdvance();
       },
       onLoadStop: (ctrl, url) {
+        debugPrint('[ANIME] Load stop → $url');
         setState(() => _loading = false);
         _probeForVideo(ctrl);
         _injectAdKiller(ctrl);
@@ -335,6 +316,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
       },
       onReceivedError: (ctrl, request, error) {
+        debugPrint('[ANIME] Error: ${error.description}');
         if (request.isForMainFrame == true) {
           _cancelAutoAdvance();
           Future.microtask(_goNextSource);
@@ -415,106 +397,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (!didPop && _isFullscreen) _toggleFullscreen();
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
-        // ── KEY FIX: WebView built ONCE at root, never recreated ──
-        body: Stack(
-          children: [
-            Positioned.fill(child: _buildWebView()),
-            if (!_isFullscreen)
-              Positioned.fill(child: _buildPortraitOverlayUI()),
-            if (_isFullscreen)
-              Positioned.fill(child: _buildFullscreenControls()),
-            if (_loading || _autoAdvancing)
-              Positioned.fill(child: _buildOverlay()),
-          ],
-        ),
+        backgroundColor: _isFullscreen ? Colors.black : AppTheme.darkBg,
+        body: _isFullscreen ? _buildFullscreen() : _buildPortrait(),
       ),
     );
   }
 
-  // ── PORTRAIT UI overlay (covers non-video areas with dark UI) ────────────
-  Widget _buildPortraitOverlayUI() {
+  // ── PORTRAIT: WebView in AspectRatio — correct 16:9 sizing ──────────────
+  Widget _buildPortrait() {
     return SafeArea(
       child: Column(
         children: [
           _buildTopBar(),
-          // Transparent 16:9 window — WebView shows through here
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(
-              children: [
-                Positioned(
-                  bottom: 8.h,
-                  right: 8.w,
-                  child: GestureDetector(
-                    onTap: _toggleFullscreen,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.fullscreen_rounded,
-                            color: Colors.white,
-                            size: 18.sp,
-                          ),
-                          SizedBox(width: 4.w),
-                          Text(
-                            'Fullscreen',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: AppTheme.darkBg,
-              child: Column(
-                children: [
-                  _buildControls(),
-                  Expanded(child: _buildEpisodeGrid()),
-                ],
-              ),
-            ),
-          ),
+          _buildPlayerBox(),
+          _buildControls(),
+          Expanded(child: _buildEpisodeGrid()),
         ],
       ),
     );
   }
 
-  // ── FULLSCREEN (no separate layout — handled in build() Stack) ────────────
-
-  Widget _buildFullscreenControls() {
-    return GestureDetector(
-      onTap: _toggleControls,
-      behavior: HitTestBehavior.translucent,
+  // ── FULLSCREEN: WebView fills entire screen ──────────────────────────────
+  Widget _buildFullscreen() {
+    return Container(
+      color: Colors.black,
       child: Stack(
         children: [
-          // Always-visible back button
-          Positioned(
-            top: 16.h,
-            left: 16.w,
-            child: GestureDetector(
-              onTap: _toggleFullscreen,
-              child: _iconBtn(Icons.arrow_back_ios_new_rounded, 'Exit'),
-            ),
-          ),
-          // Fade controls
+          Positioned.fill(child: _webViewWidget),
+          if (_loading || _autoAdvancing) _buildOverlay(),
+
+          // Tap anywhere to toggle controls
           AnimatedOpacity(
             opacity: _controlsVisible ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 250),
@@ -522,21 +434,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ignoring: !_controlsVisible,
               child: Stack(
                 children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleControls,
+                      behavior: HitTestBehavior.translucent,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                  // Exit fullscreen button
+                  Positioned(
+                    top: 16.h,
+                    left: 16.w,
+                    child: GestureDetector(
+                      onTap: _toggleFullscreen,
+                      behavior: HitTestBehavior.opaque,
+                      child: _iconBtn(
+                        Icons.fullscreen_exit_rounded,
+                        'Exit Fullscreen',
+                      ),
+                    ),
+                  ),
+                  // Title + episode at bottom
                   Positioned(
                     bottom: 20.h,
-                    left: 0,
-                    right: 0,
-                    child: _buildFullscreenBottomBar(),
+                    left: 16.w,
+                    right: 16.w,
+                    child: _buildFullscreenInfo(),
                   ),
                 ],
               ),
             ),
           ),
-          // Hint when controls hidden
-          if (!_controlsVisible && !_loading)
+
+          // Touch hint when controls are hidden
+          if (!_controlsVisible && !_loading && !_autoAdvancing)
             Positioned(
               top: 12.h,
-              right: 12.w,
+              left: 12.w,
               child: GestureDetector(
                 onTap: _showControls,
                 behavior: HitTestBehavior.opaque,
@@ -559,24 +493,73 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  // Portrait video box: WebView in AspectRatio
+  Widget _buildPlayerBox() {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          _webViewWidget,
+          if (_loading || _autoAdvancing) _buildOverlay(),
+          // Fullscreen button overlay
+          Positioned(
+            bottom: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: _toggleFullscreen,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 18.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'Fullscreen',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _iconBtn(IconData icon, String label) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withOpacity(0.7),
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.white24),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 16.sp),
-          SizedBox(width: 4.w),
+          Icon(icon, color: Colors.white, size: 18.sp),
+          SizedBox(width: 6.w),
           Text(
             label,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 10.sp,
+              fontSize: 11.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -585,12 +568,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildFullscreenBottomBar() {
+  Widget _buildFullscreenInfo() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.75),
+        color: Colors.black.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -609,14 +591,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           Text(
             'Episode ${_currentEp.number}',
             style: TextStyle(color: AppTheme.accentCyan, fontSize: 10.sp),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(child: _buildServerRow(dark: true)),
-              SizedBox(width: 8.w),
-              _buildSubDubToggle(dark: true),
-            ],
           ),
         ],
       ),
@@ -696,7 +670,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildServerRow({bool dark = false}) {
+  Widget _buildServerRow() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -704,7 +678,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           Text(
             'Servers:',
             style: TextStyle(
-              color: dark ? Colors.white60 : AppTheme.textSecondary,
+              color: AppTheme.textSecondary,
               fontSize: 10.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -731,7 +705,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ? (_playerAlive
                                 ? AppTheme.accentGreen
                                 : AppTheme.primary)
-                          : (dark ? Colors.white30 : AppTheme.darkBorder),
+                          : AppTheme.darkBorder,
                     ),
                   ),
                   child: Text(
@@ -741,7 +715,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ? (_playerAlive
                                 ? AppTheme.accentGreen
                                 : AppTheme.primaryLight)
-                          : (dark ? Colors.white60 : AppTheme.textSecondary),
+                          : AppTheme.textSecondary,
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -754,12 +728,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildSubDubToggle({bool dark = false}) {
+  Widget _buildSubDubToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: dark ? Colors.white12 : AppTheme.darkCard,
+        color: AppTheme.darkCard,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: dark ? Colors.white30 : AppTheme.darkBorder),
+        border: Border.all(color: AppTheme.darkBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -793,7 +767,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   style: TextStyle(
                     color: (t == 'DUB') == _isDub
                         ? Colors.white
-                        : (dark ? Colors.white60 : AppTheme.textSecondary),
+                        : AppTheme.textSecondary,
                     fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                   ),
