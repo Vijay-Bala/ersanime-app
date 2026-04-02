@@ -47,5 +47,20 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+
+		<!-- iOS equivalent of Android's networkSecurityConfig + usesCleartextTraffic.
+		     Allows WKWebView (used by flutter_inappwebview) to load embed streaming
+		     sources (vidlink.pro, vidsrc.cc, 2embed.stream, etc.) which may use
+		     mixed content or non-standard TLS. NSAllowsArbitraryLoadsInWebContent
+		     is the correct key for WKWebView — it does NOT affect URLSession/http pkg. -->
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<!-- Allow WKWebView to load any HTTPS source (embed players) -->
+			<key>NSAllowsArbitraryLoadsInWebContent</key>
+			<true/>
+			<!-- Allow the http package (Flutter) to reach any HTTPS API -->
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+		</dict>
 	</dict>
 </plist>

@@ -111,12 +111,10 @@ Future<List<Anime>> searchByGenre(String genre, {int page = 1}) async {
 }
 
 Future<List<Episode>> getEpisodes(Anime anime) async {
-  final knownTotal = anime.episodes;
-
-  if (knownTotal != null && knownTotal > 0) {
-    return _generateEpisodes(knownTotal, anime.title);
-  }
-
+  // ── PRIORITY 1: Currently airing? → use the AIRED count, not planned total ──
+  // AniList's `anime.episodes` is the PLANNED total episodes for the season
+  // (e.g. 25 for CoTE S4), NOT how many have aired. For airing anime,
+  // nextAiringEpisode.episode is the NEXT episode number, so aired = that - 1.
   if (anime.nextAiringEpisode != null) {
     final airedCount = anime.nextAiringEpisode!.episode - 1;
     if (airedCount > 0) {
@@ -124,11 +122,19 @@ Future<List<Episode>> getEpisodes(Anime anime) async {
     }
   }
 
+  // ── PRIORITY 2: Completed series → use total episode count ──
+  final knownTotal = anime.episodes;
+  if (knownTotal != null && knownTotal > 0) {
+    return _generateEpisodes(knownTotal, anime.title);
+  }
+
+  // ── PRIORITY 3: Fallback — fetch fresh data from AniList ──
   try {
     final data = await _gql(
       '''
       query(\$id:Int!) {
         Media(id:\$id,type:ANIME) {
+          status
           episodes
           nextAiringEpisode { episode }
         }
@@ -139,15 +145,16 @@ Future<List<Episode>> getEpisodes(Anime anime) async {
 
     final media = data['Media'] as Map<String, dynamic>?;
     if (media != null) {
-      final fetchedTotal = media['episodes'] as int?;
-      if (fetchedTotal != null && fetchedTotal > 0) {
-        return _generateEpisodes(fetchedTotal, anime.title);
-      }
+      // Same priority: airing count first, then total
       final nextEp =
           (media['nextAiringEpisode'] as Map<String, dynamic>?)?['episode']
               as int?;
       if (nextEp != null && nextEp > 1) {
         return _generateEpisodes(nextEp - 1, anime.title);
+      }
+      final fetchedTotal = media['episodes'] as int?;
+      if (fetchedTotal != null && fetchedTotal > 0) {
+        return _generateEpisodes(fetchedTotal, anime.title);
       }
     }
   } catch (_) {}
