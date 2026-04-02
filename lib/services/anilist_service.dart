@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/anime.dart';
+import '../models/manga.dart';
 
 const _url = 'https://graphql.anilist.co';
 
@@ -17,6 +18,21 @@ const _animeFields = '''
   genres
   startDate { year }
   nextAiringEpisode { episode airingAt timeUntilAiring }
+''';
+
+const _mangaFields = '''
+  id
+  title { english romaji userPreferred }
+  coverImage { extraLarge large }
+  bannerImage
+  description(asHtml: false)
+  format
+  status
+  averageScore
+  chapters
+  volumes
+  genres
+  startDate { year }
 ''';
 
 Future<Map<String, dynamic>> _gql(
@@ -108,6 +124,73 @@ Future<List<Anime>> searchByGenre(String genre, {int page = 1}) async {
     {'genre': genre, 'page': page},
   );
   return _mapList(data['Page']['media']);
+}
+
+Future<MangaHomeData> getMangaHomeData() async {
+  final data = await _gql('''
+    query {
+      trending: Page(page:1,perPage:15) {
+        media(sort:TRENDING_DESC,type:MANGA,isAdult:false) { $_mangaFields }
+      }
+      topManga: Page(page:1,perPage:15) {
+        media(sort:SCORE_DESC,type:MANGA,isAdult:false) { $_mangaFields }
+      }
+      popular: Page(page:1,perPage:15) {
+        media(sort:POPULARITY_DESC,type:MANGA,isAdult:false) { $_mangaFields }
+      }
+      recent: Page(page:1,perPage:15) {
+        media(sort:START_DATE_DESC,type:MANGA,status:RELEASING,isAdult:false) { $_mangaFields }
+      }
+    }
+  ''');
+  return MangaHomeData(
+    trending: _mapMangaList(data['trending']['media']),
+    topManga: _mapMangaList(data['topManga']['media']),
+    popular: _mapMangaList(data['popular']['media']),
+    recent: _mapMangaList(data['recent']['media']),
+  );
+}
+
+Future<Manga> getMangaDetail(int id) async {
+  final data = await _gql(
+    '''
+    query(\$id:Int!) {
+      Media(id:\$id,type:MANGA) {
+        $_mangaFields
+        recommendations(perPage:8) {
+          nodes {
+            mediaRecommendation {
+              id
+              title { english romaji userPreferred }
+              coverImage { extraLarge large }
+              format averageScore chapters volumes
+            }
+          }
+        }
+      }
+    }
+  ''',
+    {'id': id},
+  );
+  return Manga.fromJson(data['Media'] as Map<String, dynamic>);
+}
+
+Future<List<Manga>> searchManga(String query, {List<String>? genres, int page = 1}) async {
+  final data = await _gql(
+    '''
+    query(\$search:String, \$genres:[String], \$page:Int!) {
+      Page(page:\$page,perPage:30) {
+        media(search:\$search, genre_in:\$genres, type:MANGA, isAdult:false, sort:POPULARITY_DESC) { $_mangaFields }
+      }
+    }
+  ''',
+    {
+      'search': query.isEmpty ? null : query,
+      'genres': (genres == null || genres.isEmpty) ? null : genres,
+      'page': page
+    },
+  );
+  return _mapMangaList(data['Page']['media']);
 }
 
 Future<List<Episode>> getEpisodes(Anime anime) async {
@@ -204,6 +287,10 @@ List<String> getAnimeEmbedUrls(int anilistId, int episode, {bool dub = false}) {
 
 List<Anime> _mapList(dynamic list) => (list as List<dynamic>? ?? [])
     .map((m) => Anime.fromJson(m as Map<String, dynamic>))
+    .toList();
+
+List<Manga> _mapMangaList(dynamic list) => (list as List<dynamic>? ?? [])
+    .map((m) => Manga.fromJson(m as Map<String, dynamic>))
     .toList();
 
 String _toSlug(String title) => title

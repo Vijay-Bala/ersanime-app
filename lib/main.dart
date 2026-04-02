@@ -11,6 +11,9 @@ import 'screens/anime/anime_library_screen.dart';
 import 'screens/media/media_home_screen.dart';
 import 'screens/media/media_search_screen.dart';
 import 'screens/media/media_library_screen.dart';
+import 'screens/manga/manga_home_screen.dart';
+import 'screens/manga/manga_search_screen.dart';
+import 'screens/manga/manga_library_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +40,7 @@ void main() async {
   );
 }
 
-enum AppMode { anime, movies }
+enum AppMode { anime, movies, manga }
 
 class AppModeNotifier extends ChangeNotifier {
   AppMode _mode = AppMode.anime;
@@ -74,10 +77,10 @@ class MainNav extends StatefulWidget {
   @override
   State<MainNav> createState() => _MainNavState();
 }
-
 class _MainNavState extends State<MainNav> {
   int _animeIndex = 0;
   int _moviesIndex = 0;
+  int _mangaIndex = 0;
 
   static const _animeScreens = [
     AnimeHomeScreen(),
@@ -91,28 +94,47 @@ class _MainNavState extends State<MainNav> {
     MediaLibraryScreen(),
   ];
 
+  static const _mangaScreens = [
+    MangaHomeScreen(),
+    MangaSearchScreen(),
+    MangaLibraryScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final modeNotifier = context.watch<AppModeNotifier>();
     final isAnime = modeNotifier.mode == AppMode.anime;
-    final currentIndex = isAnime ? _animeIndex : _moviesIndex;
+    final isManga = modeNotifier.mode == AppMode.manga;
+    
+    int currentIndex;
+    if (isAnime) currentIndex = _animeIndex;
+    else if (isManga) currentIndex = _mangaIndex;
+    else currentIndex = _moviesIndex;
+
+    Color activeColor;
+    if (isAnime) activeColor = AppTheme.primary;
+    else if (isManga) activeColor = AppTheme.accentGreen;
+    else activeColor = AppTheme.accentOrange;
 
     return Scaffold(
       body: isAnime
           ? IndexedStack(index: _animeIndex, children: _animeScreens)
-          : IndexedStack(index: _moviesIndex, children: _moviesScreens),
+          : isManga
+              ? IndexedStack(index: _mangaIndex, children: _mangaScreens)
+              : IndexedStack(index: _moviesIndex, children: _moviesScreens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: currentIndex,
-          selectedItemColor:
-              isAnime ? AppTheme.primary : AppTheme.accentOrange,
+          selectedItemColor: activeColor,
           unselectedItemColor: AppTheme.textSecondary,
           onTap: (i) => setState(() {
             if (isAnime) {
               _animeIndex = i;
+            } else if (isManga) {
+              _mangaIndex = i;
             } else {
               _moviesIndex = i;
             }
@@ -135,10 +157,17 @@ class ModeSwitcherTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final modeNotifier = context.watch<AppModeNotifier>();
     final isAnime = modeNotifier.mode == AppMode.anime;
-    final gradColors = isAnime
-        ? [AppTheme.primary, AppTheme.accentCyan]
-        : [AppTheme.accentOrange, AppTheme.accentPink];
-    final label = isAnime ? 'ERSA-Anime' : 'ERSA-Movies';
+    final isManga = modeNotifier.mode == AppMode.manga;
+    
+    List<Color> gradColors;
+    if (isAnime) gradColors = [AppTheme.primary, AppTheme.accentCyan];
+    else if (isManga) gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
+    else gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
+    
+    String label;
+    if (isAnime) label = 'ERSA-Anime';
+    else if (isManga) label = 'ERSA-Manga';
+    else label = 'ERSA-Movies';
 
     return GestureDetector(
       onTap: () => _showDropdown(context, modeNotifier),
@@ -159,9 +188,9 @@ class ModeSwitcherTitle extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4.w),
-          Icon(
+            Icon(
             Icons.arrow_drop_down_rounded,
-            color: isAnime ? AppTheme.primary : AppTheme.accentOrange,
+            color: gradColors.first,
             size: 20.sp,
           ),
         ],
@@ -204,6 +233,16 @@ class ModeSwitcherTitle extends StatelessWidget {
             sublabel: 'Movies & Series streaming',
             gradColors: [AppTheme.accentOrange, AppTheme.accentPink],
             selected: notifier.mode == AppMode.movies,
+          ),
+        ),
+        PopupMenuItem(
+          value: AppMode.manga,
+          child: _ModeOption(
+            icon: '📖',
+            label: 'ERSA-Manga',
+            sublabel: 'Manga & Manhwa reader',
+            gradColors: [AppTheme.accentGreen, AppTheme.accentCyan],
+            selected: notifier.mode == AppMode.manga,
           ),
         ),
       ],

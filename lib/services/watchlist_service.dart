@@ -44,14 +44,19 @@ class WatchlistService extends ChangeNotifier {
   static const _animeHistoryKey = 'watch_history';
   static const _mediaStatusKey = 'media_watchlist_v1';
   static const _mediaHistoryKey = 'media_history_v1';
+  static const _mangaStatusKey = 'manga_watchlist_v1';
+  static const _mangaHistoryKey = 'manga_history_v1';
 
   Map<int, WatchStatus> _animeStatus = {};
   Map<String, int> _animeHistory = {};
   Map<int, WatchStatus> _mediaStatus = {};
   Map<String, int> _mediaHistory = {};
+  Map<int, WatchStatus> _mangaStatus = {};
+  Map<String, int> _mangaHistory = {};
 
   Map<int, WatchStatus> get animeStatusMap => _animeStatus;
   Map<int, WatchStatus> get mediaStatusMap => _mediaStatus;
+  Map<int, WatchStatus> get mangaStatusMap => _mangaStatus;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -78,6 +83,18 @@ class WatchlistService extends ChangeNotifier {
     final mediaHistRaw = prefs.getString(_mediaHistoryKey);
     if (mediaHistRaw != null) {
       _mediaHistory = Map<String, int>.from(jsonDecode(mediaHistRaw));
+    }
+
+    final mangaRaw = prefs.getString(_mangaStatusKey);
+    if (mangaRaw != null) {
+      final decoded = jsonDecode(mangaRaw) as Map<String, dynamic>;
+      _mangaStatus = decoded.map(
+        (k, v) => MapEntry(int.parse(k), WatchStatus.values[v as int]),
+      );
+    }
+    final mangaHistRaw = prefs.getString(_mangaHistoryKey);
+    if (mangaHistRaw != null) {
+      _mangaHistory = Map<String, int>.from(jsonDecode(mangaHistRaw));
     }
 
     notifyListeners();
@@ -201,4 +218,50 @@ class WatchlistService extends ChangeNotifier {
       jsonEncode(_mediaStatus.map((k, v) => MapEntry(k.toString(), v.index))),
     );
   }
+
+  // Manga Methods
+  WatchStatus? getMangaStatus(int id) => _mangaStatus[id];
+  bool isMangaInAnyList(int id) => _mangaStatus.containsKey(id);
+  bool isMangaFavourite(int id) => _mangaStatus[id] == WatchStatus.favourite;
+
+  List<int> getMangaByStatus(WatchStatus status) => _mangaStatus.entries
+      .where((e) => e.value == status)
+      .map((e) => e.key)
+      .toList();
+
+  Future<void> setMangaStatus(int id, WatchStatus? status) async {
+    if (status == null) {
+      _mangaStatus.remove(id);
+    } else {
+      _mangaStatus[id] = status;
+    }
+    await _saveMangaStatus();
+    notifyListeners();
+  }
+
+  Future<void> removeMangaFromList(int id) async {
+    _mangaStatus.remove(id);
+    await _saveMangaMatus();
+    notifyListeners();
+  }
+
+  Future<void> markMangaRead(int mangaId, String chapterId) async {
+    _mangaHistory['$mangaId-$chapterId'] = DateTime.now().millisecondsSinceEpoch;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_mangaHistoryKey, jsonEncode(_mangaHistory));
+    notifyListeners();
+  }
+
+  bool isMangaRead(int mangaId, String chapterId) =>
+      _mangaHistory.containsKey('$mangaId-$chapterId');
+
+  Future<void> _saveMangaStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _mangaStatusKey,
+      jsonEncode(_mangaStatus.map((k, v) => MapEntry(k.toString(), v.index))),
+    );
+  }
+
+  Future<void> _saveMangaMatus() => _saveMangaStatus();
 }
