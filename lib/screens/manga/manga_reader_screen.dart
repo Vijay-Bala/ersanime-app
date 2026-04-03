@@ -10,8 +10,6 @@ import '../../models/manga.dart';
 import '../../services/manga_service.dart';
 import '../../theme/app_theme.dart';
 
-// ── Ad-blocking configuration (mirrors the anime/media player approach) ───────
-
 final String _kMangaUserAgent = Platform.isIOS
     ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
           'AppleWebKit/605.1.15 (KHTML, like Gecko) '
@@ -20,8 +18,6 @@ final String _kMangaUserAgent = Platform.isIOS
           'AppleWebKit/537.36 (KHTML, like Gecko) '
           'Chrome/124.0.0.0 Mobile Safari/537.36';
 
-/// Hosts that are explicitly ALLOWED for external manga reading.
-/// MangaPlus and Viz are the two primary hosts for external chapters.
 const _kMangaAllowedHosts = {
   'mangaplus.shueisha.com',
   'mangaplus.shueisha.co.jp',
@@ -32,7 +28,6 @@ const _kMangaAllowedHosts = {
   'www.shonenjump.com',
 };
 
-/// Ad/tracker network blocklist — same comprehensive list as anime player.
 const _kMangaAdHosts = {
   'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
   'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
@@ -55,8 +50,6 @@ bool _isMangaAllowedNavigation(WebUri? uri) {
   final host = uri.host.toLowerCase();
   return _kMangaAllowedHosts.any((h) => host == h || host.endsWith('.$h'));
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 class MangaReaderScreen extends StatefulWidget {
   final MangaChapter chapter;
@@ -86,14 +79,12 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
   final Map<int, TransformationController> _zoomControllers = {};
   bool _anyZoomed = false;
 
-  // ── External chapter (MangaPlus / Viz) WebView state ─────────────────────
   bool _isExternalChapter = false;
   String? _externalUrl;
   bool _webLoading = true;
   bool _isFullscreen = false;
   bool _controlsVisible = true;
   Timer? _controlsHideTimer;
-  // Built ONCE in _openExternalReader, stored as a field
   Widget? _webViewWidget;
 
   @override
@@ -147,7 +138,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
   }
 
   Future<void> _fetchPages() async {
-    // Check if this is an external chapter (MangaPlus / Viz)
     if (MangaService.isExternalChapter(_currentChapter.id)) {
       final url = MangaService.getExternalUrl(_currentChapter.id);
       if (mounted) {
@@ -167,7 +157,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       return;
     }
 
-    // Native chapter
     setState(() {
       _isExternalChapter = false;
       _externalUrl = null;
@@ -217,8 +206,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     }
   }
 
-  // ── Fullscreen / controls (for WebView external reader) ──────────────────
-
   void _showControls() {
     _controlsHideTimer?.cancel();
     setState(() => _controlsVisible = true);
@@ -256,8 +243,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     _showControls();
   }
 
-  // ── Build the ad-killed WebView for external chapters ────────────────────
-
   Widget _buildWebView(String url) {
     return InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(url)),
@@ -278,7 +263,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
         useWideViewPort: true,
         loadWithOverviewMode: true,
       ),
-      // ── Network-level ad blocking ──────────────────────────────────────
       shouldInterceptRequest: (ctrl, request) async {
         final host = request.url.host.toLowerCase();
         if (_isMangaAdHost(host)) {
@@ -286,7 +270,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
         }
         return null;
       },
-      // ── Navigation whitelist ───────────────────────────────────────────
       onCreateWindow: (ctrl, action) async => false,
       shouldOverrideUrlLoading: (ctrl, action) async {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
@@ -299,28 +282,22 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       },
       onWebViewCreated: (ctrl) {},
       onLoadStart: (ctrl, url) {
-        debugPrint('[MANGA-EXT] Load start → $url');
         if (mounted) setState(() => _webLoading = true);
       },
       onLoadStop: (ctrl, url) {
-        debugPrint('[MANGA-EXT] Load stop → $url');
         if (mounted) setState(() => _webLoading = false);
         _injectMangaAdKiller(ctrl);
         _showControls();
       },
       onReceivedError: (ctrl, request, error) {
-        debugPrint('[MANGA-EXT] Error: ${error.description}');
         if (mounted) setState(() => _webLoading = false);
       },
       onReceivedHttpError: (ctrl, request, response) {
-        debugPrint('[MANGA-EXT] HTTP ${response.statusCode}');
         if (mounted) setState(() => _webLoading = false);
       },
     );
   }
 
-  /// Injects the same ad-killer JavaScript used in the anime/media players.
-  /// Additionally hides MangaPlus-specific overlays that block reading.
   Future<void> _injectMangaAdKiller(InAppWebViewController ctrl) async {
     try {
       await ctrl.evaluateJavascript(
@@ -366,10 +343,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     } catch (_) {}
   }
 
-  // =========================================================================
-  // BUILD
-  // =========================================================================
-
   @override
   Widget build(BuildContext context) {
     if (_isExternalChapter) {
@@ -377,8 +350,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     }
     return _buildNativeReader();
   }
-
-  // ── NATIVE READER (CachedNetworkImage pages) ────────────────────────────
 
   Widget _buildNativeReader() {
     return Scaffold(
@@ -474,7 +445,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
   }
 
   Widget _buildPage(MangaPage page, int index) {
-    // Set correct Referer header per source
     Map<String, String>? headers;
     if (_currentChapter.id.startsWith('mangapill|')) {
       headers = {
@@ -684,8 +654,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     );
   }
 
-  // ── EXTERNAL READER (InAppWebView with full ad blocking) ─────────────────
-
   Widget _buildExternalReader() {
     return PopScope(
       canPop: !_isFullscreen,
@@ -837,7 +805,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
               ),
             ),
           ),
-        // Fullscreen button (bottom-right)
         if (!_webLoading)
           Positioned(
             bottom: 8.h,
@@ -1014,8 +981,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       ),
     );
   }
-
-  // ── Source badge color ────────────────────────────────────────────────────
 
   Color _sourceColor(String group) {
     switch (group.toLowerCase()) {

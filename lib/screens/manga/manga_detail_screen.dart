@@ -37,21 +37,16 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       final detail = await getMangaDetail(widget.manga.id);
       if (mounted) setState(() { _manga = detail; _loading = false; });
     } catch (e, st) {
-      debugPrint('[MANGA-DETAIL] getMangaDetail error: $e\n$st');
       if (mounted) setState(() { _loading = false; });
     }
 
     try {
-      debugPrint('[MANGA-DETAIL] Calling fetchAvailableChapters for "${widget.manga.title}" (AniList:${widget.manga.id}, MAL:${widget.manga.idMal})');
       final chapters = await MangaService.fetchAvailableChapters(widget.manga);
-      debugPrint('[MANGA-DETAIL] fetchAvailableChapters returned ${chapters.length} chapters');
       if (mounted) setState(() { _chapters = chapters; _loadingChapters = false; });
     } catch (e, st) {
-      debugPrint('[MANGA-DETAIL] fetchAvailableChapters EXCEPTION: $e\n$st');
       if (mounted) setState(() { _chapters = []; _loadingChapters = false; });
     }
   }
-
 
   void _readChapter(MangaChapter chapter) {
     context.read<WatchlistService>().markMangaRead(_manga!.id, chapter.id);
@@ -282,9 +277,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       );
     }
 
-    // Use actual fetched count, falling back to AniList metadata if still loading
     final totalCount = _chapters!.length;
-    // Clamp display count so we never exceed what we have
     final displayCount = _chapterDisplayCount.clamp(0, totalCount);
     final hasMore = displayCount < totalCount;
 
