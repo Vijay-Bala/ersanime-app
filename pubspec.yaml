@@ -22,6 +22,7 @@ dependencies:
   flutter_screenutil: ^5.9.3
   flutter_animate: ^4.5.2
   android_pip: ^2.0.2
+  html: ^0.15.4
 
 dev_dependencies:
   flutter_test:

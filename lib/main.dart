@@ -77,6 +77,7 @@ class MainNav extends StatefulWidget {
   @override
   State<MainNav> createState() => _MainNavState();
 }
+
 class _MainNavState extends State<MainNav> {
   int _animeIndex = 0;
   int _moviesIndex = 0;
@@ -105,23 +106,29 @@ class _MainNavState extends State<MainNav> {
     final modeNotifier = context.watch<AppModeNotifier>();
     final isAnime = modeNotifier.mode == AppMode.anime;
     final isManga = modeNotifier.mode == AppMode.manga;
-    
+
     int currentIndex;
-    if (isAnime) currentIndex = _animeIndex;
-    else if (isManga) currentIndex = _mangaIndex;
-    else currentIndex = _moviesIndex;
+    if (isAnime)
+      currentIndex = _animeIndex;
+    else if (isManga)
+      currentIndex = _mangaIndex;
+    else
+      currentIndex = _moviesIndex;
 
     Color activeColor;
-    if (isAnime) activeColor = AppTheme.primary;
-    else if (isManga) activeColor = AppTheme.accentGreen;
-    else activeColor = AppTheme.accentOrange;
+    if (isAnime)
+      activeColor = AppTheme.primary;
+    else if (isManga)
+      activeColor = AppTheme.accentGreen;
+    else
+      activeColor = AppTheme.accentOrange;
 
     return Scaffold(
       body: isAnime
           ? IndexedStack(index: _animeIndex, children: _animeScreens)
           : isManga
-              ? IndexedStack(index: _mangaIndex, children: _mangaScreens)
-              : IndexedStack(index: _moviesIndex, children: _moviesScreens),
+          ? IndexedStack(index: _mangaIndex, children: _mangaScreens)
+          : IndexedStack(index: _moviesIndex, children: _moviesScreens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
@@ -140,9 +147,18 @@ class _MainNavState extends State<MainNav> {
             }
           }),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark_rounded), label: 'Library'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_rounded),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_rounded),
+              label: 'Library',
+            ),
           ],
         ),
       ),
@@ -158,16 +174,22 @@ class ModeSwitcherTitle extends StatelessWidget {
     final modeNotifier = context.watch<AppModeNotifier>();
     final isAnime = modeNotifier.mode == AppMode.anime;
     final isManga = modeNotifier.mode == AppMode.manga;
-    
+
     List<Color> gradColors;
-    if (isAnime) gradColors = [AppTheme.primary, AppTheme.accentCyan];
-    else if (isManga) gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
-    else gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
-    
+    if (isAnime)
+      gradColors = [AppTheme.primary, AppTheme.accentCyan];
+    else if (isManga)
+      gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
+    else
+      gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
+
     String label;
-    if (isAnime) label = 'ERSA-Anime';
-    else if (isManga) label = 'ERSA-Manga';
-    else label = 'ERSA-Movies';
+    if (isAnime)
+      label = 'ERSA-Anime';
+    else if (isManga)
+      label = 'ERSA-Manga';
+    else
+      label = 'ERSA-Movies';
 
     return GestureDetector(
       onTap: () => _showDropdown(context, modeNotifier),
@@ -188,7 +210,7 @@ class ModeSwitcherTitle extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4.w),
-            Icon(
+          Icon(
             Icons.arrow_drop_down_rounded,
             color: gradColors.first,
             size: 20.sp,

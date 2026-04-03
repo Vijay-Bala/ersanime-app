@@ -2,6 +2,7 @@
 
 class Manga {
   final int id;
+  final int? idMal;
   final String title;
   final String image;
   final String? cover;
@@ -17,6 +18,7 @@ class Manga {
 
   const Manga({
     required this.id,
+    this.idMal,
     required this.title,
     required this.image,
     this.cover,
@@ -36,6 +38,7 @@ class Manga {
     final c = m['coverImage'] as Map<String, dynamic>? ?? {};
     return Manga(
       id: m['id'] ?? 0,
+      idMal: m['idMal'] as int?,
       title: (t['english'] ?? t['romaji'] ?? t['userPreferred'] ?? 'Unknown').toString(),
       image: (c['extraLarge'] ?? c['large'] ?? '').toString(),
       cover: m['bannerImage']?.toString(),

@@ -1,327 +1,348 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/manga.dart';
 
+/// MangaService — Reliable chapter aggregator
+/// Primary Source: MangaPill (No Cloudflare, 100% native chapters for One Piece, etc.)
+/// Secondary Fallback: MangaDex (GraphQL-based API)
 class MangaService {
-  // ===========================================================================
-  // 1. COMICK API (Primary: Fast, high-quality, JSON)
-  // ===========================================================================
-  static Future<List<MangaChapter>> getComicKChapters(String title) async {
+  static const _mpBase = 'https://mangapill.com';
+  static const _mpHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  };
+
+  static const _dxBase = 'https://api.mangadex.org';
+  static const _dxHeaders = {
+    'User-Agent': 'ERSA-App/1.0 (Flutter; Android)',
+    'Accept': 'application/json',
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static String _normalizeKey(String raw) {
+    final stripped = raw
+        .replaceAll(RegExp(r'chapter\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'ch\.?\s*', caseSensitive: false), '')
+        .trim();
+    final d = double.tryParse(stripped);
+    if (d == null) return raw.toLowerCase().trim();
+    return d == d.floorToDouble() ? '${d.toInt()}.0' : d.toString();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOURCE 1: MANGAPILL (Primary, Native Images, No Cloudflare)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<String?> _findMangaPillRoute(String title) async {
+    debugPrint('[MANGA] MangaPill: Searching for "$title"');
     try {
-      final searchRes = await http.get(Uri.parse(
-          'https://api.comick.app/v1.0/search?q=${Uri.encodeComponent(title)}&limit=1'));
-      if (searchRes.statusCode != 200) return [];
-      final searchJson = jsonDecode(searchRes.body) as List;
-      if (searchJson.isEmpty) return [];
+      final query = Uri.encodeComponent(title);
+      final res = await http.get(
+        Uri.parse('$_mpBase/search?q=$query'),
+        headers: _mpHeaders,
+      ).timeout(const Duration(seconds: 15));
+      debugPrint('[MANGA] MangaPill search response: ${res.statusCode}');
 
-      final hid = searchJson[0]['hid'];
-      final chapRes = await http.get(Uri.parse(
-          'https://api.comick.app/comic/$hid/chapters?lang=en&limit=500'));
-      if (chapRes.statusCode != 200) return [];
+      if (res.statusCode != 200) return null;
 
-      final chapData = jsonDecode(chapRes.body);
-      final chapters = chapData['chapters'] as List;
-
-      return chapters.map((c) {
-        return MangaChapter(
-          id: 'comick|${c['hid']}',
-          title: c['title'] ?? 'Chapter ${c['chap']}',
-          chapterNumber: c['chap'] ?? '0',
-          volumeNumber: c['vol'],
-          publishedAt: c['created_at'] != null ? DateTime.parse(c['created_at']) : null,
-        );
-      }).toList();
-    } catch (_) {
-      return [];
+      // Extract first manga link: href="/manga/2/one-piece"
+      final match = RegExp(r'href="(/manga/[^"]+)"').firstMatch(res.body);
+      if (match != null) {
+        final route = match.group(1)!;
+        debugPrint('[MANGA] ✅ Found MangaPill route: $route');
+        return route;
+      }
+      debugPrint('[MANGA] ❌ MangaPill search found no results');
+      return null;
+    } catch (e, st) {
+      debugPrint('[MANGA] MangaPill exception: $e\n$st');
+      return null;
     }
   }
 
-  static Future<List<MangaPage>> getComicKPages(String chapterId) async {
+  static Future<List<MangaChapter>> _getMangaPillChapters(String route, String mangaTitle) async {
+    debugPrint('[MANGA] Fetching MangaPill chapters for route: $route');
     try {
-      final hid = chapterId.split('|')[1];
-      final res = await http.get(Uri.parse('https://api.comick.app/chapter/$hid'));
+      final res = await http.get(
+        Uri.parse('$_mpBase$route'),
+        headers: _mpHeaders,
+      ).timeout(const Duration(seconds: 15));
+
+      debugPrint('[MANGA] MangaPill chapter list response: ${res.statusCode}');
       if (res.statusCode != 200) return [];
 
-      final data = jsonDecode(res.body);
-      final images = data['chapter']['md_images'] as List;
+      // Extract chapter links: href="/chapters/2-10000000/one-piece-chapter-100"
+      // the chapter number is usually at the end, but we can also extract text from the anchor tag
+      final matches = RegExp(r'<a[^>]+href="(/chapters/[^"]+)"[^>]*>(.*?)</a>')
+          .allMatches(res.body);
 
-      return images.asMap().entries.map((e) {
-        return MangaPage(
-          index: e.key,
-          imageUrl: 'https://meo.comick.pictures/${e.value['b2key']}',
-        );
-      }).toList();
-    } catch (_) {
+      debugPrint('[MANGA] MangaPill matched ${matches.length} chapter anchors');
+      final List<MangaChapter> chapters = [];
+
+      for (final match in matches) {
+        final chapRoute = match.group(1)!;
+        final rawTitle = match.group(2)!.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+
+        // Extract chapter number from title (e.g., "Chapter 101" or "Chapter 1117.9")
+        String chapNum = '';
+        final chapMatch = RegExp(r'chapter\s+([0-9.]+|[0-9]+-[0-9]+)', caseSensitive: false).firstMatch(rawTitle);
+        if (chapMatch != null) {
+          chapNum = chapMatch.group(1)!;
+        } else {
+          // If no "Chapter X" in text, try to extract last number from url route
+          final urlNumMatch = RegExp(r'-([0-9.]+)$').firstMatch(chapRoute);
+          if (urlNumMatch != null) {
+            chapNum = urlNumMatch.group(1)!;
+          } else {
+            chapNum = chapters.length.toString(); // Fallback
+          }
+        }
+
+        chapters.add(MangaChapter(
+          id: 'mangapill|$chapRoute',
+          title: rawTitle.isNotEmpty ? rawTitle : 'Chapter $chapNum',
+          chapterNumber: chapNum,
+          group: 'MangaPill',
+        ));
+      }
+
+      debugPrint('[MANGA] Total MangaPill chapters collected: ${chapters.length}');
+      return chapters;
+    } catch (e, st) {
+      debugPrint('[MANGA] MangaPill chapter fetch exception: $e\n$st');
       return [];
     }
   }
 
-  // ===========================================================================
-  // 2. MANGADEX API (Secondary: Huge library, strict JSON)
-  // ===========================================================================
-  static Future<List<MangaChapter>> getMangaDexChapters(String title) async {
+  static Future<List<MangaPage>> _getMangaPillPages(String chapterRoute) async {
+    debugPrint('[MANGA] Fetching MangaPill pages for: $chapterRoute');
     try {
-      final searchRes = await http.get(Uri.parse(
-          'https://api.mangadex.org/manga?title=${Uri.encodeComponent(title)}&limit=1&order[relevance]=desc'));
-      if (searchRes.statusCode != 200) return [];
-      final searchJson = jsonDecode(searchRes.body);
-      if (searchJson['data'].isEmpty) return [];
+      final res = await http.get(
+        Uri.parse('$_mpBase$chapterRoute'),
+        headers: _mpHeaders,
+      ).timeout(const Duration(seconds: 20));
 
-      final mangaId = searchJson['data'][0]['id'];
-      final chapRes = await http.get(Uri.parse(
-          'https://api.mangadex.org/manga/$mangaId/feed?translatedLanguage[]=en&limit=500&order[chapter]=desc'));
-      if (chapRes.statusCode != 200) return [];
+      debugPrint('[MANGA] MangaPill pages response: ${res.statusCode}');
+      if (res.statusCode != 200) return [];
 
-      final chapData = jsonDecode(chapRes.body)['data'] as List;
-      return chapData.map((c) {
-        return MangaChapter(
-          id: 'mangadex|${c['id']}',
-          title: c['attributes']['title'] ?? 'Chapter ${c['attributes']['chapter']}',
-          chapterNumber: c['attributes']['chapter'] ?? '0',
-          volumeNumber: c['attributes']['volume'],
-          publishedAt: c['attributes']['publishAt'] != null ? DateTime.parse(c['attributes']['publishAt']) : null,
-        );
-      }).toList();
+      // Extract image data-src tags
+      final matches = RegExp(r'<img[^>]+data-src="([^"]+)"').allMatches(res.body);
+      debugPrint('[MANGA] MangaPill found ${matches.length} raw images');
+
+      final List<MangaPage> pages = [];
+      int idx = 0;
+      for (final match in matches) {
+        final imgUrl = match.group(1)!;
+        pages.add(MangaPage(index: idx++, imageUrl: imgUrl));
+      }
+      return pages;
+    } catch (e, st) {
+      debugPrint('[MANGA] MangaPill pages exception: $e\n$st');
+      return [];
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOURCE 2: MANGADEX (Secondary Fallback)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<String?> _findMangaDexId(Manga manga) async {
+    debugPrint('[MANGA] MangaDex: Searching | AniList:${manga.id} | MAL:${manga.idMal}');
+    if (manga.idMal != null) {
+      final id = await _fetchDxByMalId(manga.idMal!);
+      if (id != null) return id;
+    }
+    final byAl = await _fetchDxByAniListId(manga.id);
+    if (byAl != null) return byAl;
+    return _fetchDxByTitle(manga.title);
+  }
+
+  static Future<String?> _fetchDxByMalId(int malId) async {
+    final url = '$_dxBase/manga?links[mal]=$malId&limit=5&order[relevance]=desc';
+    try {
+      final res = await http.get(Uri.parse(url), headers: _dxHeaders).timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final results = jsonDecode(res.body)['data'] as List? ?? [];
+      return results.isNotEmpty ? results[0]['id'] as String? : null;
+    } catch (_) { return null; }
+  }
+
+  static Future<String?> _fetchDxByAniListId(int alId) async {
+    final url = '$_dxBase/manga?links[al]=$alId&limit=5&order[relevance]=desc';
+    try {
+      final res = await http.get(Uri.parse(url), headers: _dxHeaders).timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final results = jsonDecode(res.body)['data'] as List? ?? [];
+      return results.isNotEmpty ? results[0]['id'] as String? : null;
+    } catch (_) { return null; }
+  }
+
+  static Future<String?> _fetchDxByTitle(String title) async {
+    final url = '$_dxBase/manga?title=${Uri.encodeComponent(title)}&limit=5&order[relevance]=desc';
+    try {
+      final res = await http.get(Uri.parse(url), headers: _dxHeaders).timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final results = jsonDecode(res.body)['data'] as List? ?? [];
+      return results.isNotEmpty ? results[0]['id'] as String? : null;
+    } catch (_) { return null; }
+  }
+
+  static Future<List<MangaChapter>> _getMangaDexChapters(String mangaDexId) async {
+    debugPrint('[MANGA] Fetching MangaDex chapters for ID: $mangaDexId');
+    try {
+      final countRes = await http.get(
+        Uri.parse('$_dxBase/manga/$mangaDexId/feed?translatedLanguage[]=en&limit=1&offset=0&order[chapter]=asc'),
+        headers: _dxHeaders,
+      ).timeout(const Duration(seconds: 15));
+      
+      if (countRes.statusCode != 200) return [];
+      final totalCount = jsonDecode(countRes.body)['total'] as int? ?? 0;
+      if (totalCount == 0) return [];
+
+      final pageCount = (totalCount / 500).ceil().clamp(1, 40);
+      final futures = List.generate(pageCount, (i) {
+        return http.get(
+          Uri.parse('$_dxBase/manga/$mangaDexId/feed?translatedLanguage[]=en&limit=500&offset=${i * 500}&order[chapter]=asc'),
+          headers: _dxHeaders,
+        ).timeout(const Duration(seconds: 30));
+      });
+      
+      final responses = await Future.wait(futures);
+      final List<MangaChapter> allChapters = [];
+      
+      for (final res in responses) {
+        if (res.statusCode != 200) continue;
+        final chapData = (jsonDecode(res.body)['data'] as List?) ?? [];
+        for (final c in chapData) {
+          final attrs = c['attributes'] as Map<String, dynamic>;
+          final chapNum = attrs['chapter']?.toString();
+          if (chapNum == null || chapNum.isEmpty) continue;
+
+          final externalUrl = attrs['externalUrl']?.toString();
+          final pages = attrs['pages'] as int? ?? 0;
+
+          if (externalUrl == null && pages == 0) continue;
+
+          final rawTitle = attrs['title']?.toString() ?? '';
+          final chapterId = externalUrl != null
+              ? 'mangadex-ext|${c['id']}|${Uri.encodeComponent(externalUrl)}'
+              : 'mangadex|${c['id']}';
+
+          allChapters.add(MangaChapter(
+            id: chapterId,
+            title: rawTitle.isNotEmpty ? rawTitle : 'Chapter $chapNum',
+            chapterNumber: chapNum,
+            volumeNumber: attrs['volume']?.toString(),
+            publishedAt: attrs['publishAt'] != null ? DateTime.tryParse(attrs['publishAt'].toString()) : null,
+            group: externalUrl != null ? 'MangaPlus / Viz' : 'MangaDex',
+          ));
+        }
+      }
+      debugPrint('[MANGA] Total MangaDex chapters collected: ${allChapters.length}');
+      return allChapters;
     } catch (_) {
       return [];
     }
   }
 
-  static Future<List<MangaPage>> getMangaDexPages(String chapterId) async {
+  static Future<List<MangaPage>> _getMangaDexPages(String chapterId) async {
     try {
       final id = chapterId.split('|')[1];
-      final res = await http.get(Uri.parse('https://api.mangadex.org/at-home/server/$id'));
+      final res = await http.get(Uri.parse('$_dxBase/at-home/server/$id'), headers: _dxHeaders).timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return [];
-
       final data = jsonDecode(res.body);
-      final baseUrl = data['baseUrl'];
-      final hash = data['chapter']['hash'];
-      final dataArray = data['chapter']['data'] as List;
-
-      return dataArray.asMap().entries.map((e) {
-        return MangaPage(
-          index: e.key,
-          imageUrl: '$baseUrl/data/$hash/${e.value}',
-        );
-      }).toList();
+      final baseUrl = data['baseUrl']?.toString() ?? '';
+      final hash = data['chapter']?['hash']?.toString() ?? '';
+      final dataArray = data['chapter']?['data'] as List? ?? [];
+      return dataArray.asMap().entries.map((e) => MangaPage(index: e.key, imageUrl: '$baseUrl/data/$hash/${e.value}')).toList();
     } catch (_) {
       return [];
     }
   }
 
-  // ===========================================================================
-  // 3 & 4. CONSUMET MULTI-PROVIDER FALLBACKS (MangaKakalot, MangaHere)
-  // ===========================================================================
-  static const _consumetUrl = 'https://api-consumet-org-taupe.vercel.app/meta/anilist-manga';
-
-  static Future<List<MangaChapter>> getConsumetChapters(int anilistId, String provider) async {
-    try {
-      final res = await http.get(Uri.parse('$_consumetUrl/$anilistId?provider=$provider'));
-      if (res.statusCode != 200) return [];
-
-      final data = jsonDecode(res.body);
-      final chapters = data['chapters'] as List;
-
-      return chapters.map((c) {
-        return MangaChapter(
-          id: 'consumet|$provider|${c['id']}|$anilistId',
-          title: c['title']?.toString() ?? 'Chapter',
-          chapterNumber: c['chapterNumber']?.toString() ?? '0',
-          volumeNumber: c['volumeNumber']?.toString(),
-        );
-      }).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<List<MangaPage>> getConsumetPages(String encodedId) async {
-    try {
-      final parts = encodedId.split('|');
-      final provider = parts[1];
-      final chapterId = parts[2];
-      final anilistId = parts[3];
-
-      final res = await http.get(Uri.parse('$_consumetUrl/read?chapterId=$chapterId&provider=$provider&mangaId=$anilistId'));
-      if (res.statusCode != 200) return [];
-
-      final data = jsonDecode(res.body) as List;
-      return data.map((p) {
-        return MangaPage(
-          index: p['page'] ?? 0,
-          imageUrl: p['img'] ?? p['url'],
-        );
-      }).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  // ===========================================================================
-  // UNIFIED FETCHING LOGIC (With 5 fallback strategies)
-  // ===========================================================================
-  static Future<List<MangaChapter>> _getComicKChaptersPaged(String title) async {
-    try {
-      final searchRes = await http.get(Uri.parse(
-          'https://api.comick.app/v1.0/search?q=${Uri.encodeComponent(title)}&limit=1'));
-      if (searchRes.statusCode != 200) return [];
-      final searchJson = jsonDecode(searchRes.body) as List;
-      if (searchJson.isEmpty) return [];
-
-      final hid = searchJson[0]['hid'];
-      final List<MangaChapter> allChapters = [];
-      int page = 1;
-      bool hasMore = true;
-
-      // Recursive loop to fetch ALL chapters (exhaust every group)
-      while (hasMore && page <= 25) { // Safety cap at 2500 entries
-        final chapRes = await http.get(Uri.parse(
-            'https://api.comick.app/comic/$hid/chapters?lang=en&limit=100&page=$page'));
-        if (chapRes.statusCode != 200) break;
-
-        final data = jsonDecode(chapRes.body);
-        final chapters = data['chapters'] as List;
-        if (chapters.isEmpty) break;
-
-        for (var c in chapters) {
-          final groupTitle = (c['md_groups'] as List?)?.isNotEmpty == true 
-              ? c['md_groups'][0]['title']?.toString() : null;
-          allChapters.add(MangaChapter(
-            id: 'comick|${c['hid']}',
-            title: c['title'] ?? 'Chapter ${c['chap']}',
-            chapterNumber: c['chap']?.toString() ?? '0',
-            volumeNumber: c['vol'],
-            publishedAt: c['created_at'] != null ? DateTime.parse(c['created_at']) : null,
-            group: groupTitle,
-          ));
-        }
-        
-        if (chapters.length < 100) hasMore = false;
-        page++;
-      }
-      return allChapters;
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<List<MangaChapter>> _getMangaDexChaptersPaged(String title) async {
-    try {
-      final searchRes = await http.get(Uri.parse(
-          'https://api.mangadex.org/manga?title=${Uri.encodeComponent(title)}&limit=1&order[relevance]=desc'));
-      if (searchRes.statusCode != 200) return [];
-      final searchJson = jsonDecode(searchRes.body);
-      if (searchJson['data'].isEmpty) return [];
-
-      final mangaId = searchJson['data'][0]['id'];
-      final List<MangaChapter> allChapters = [];
-      int offset = 0;
-      int total = 1;
-
-      while (offset < total && offset < 2000) {
-        final chapRes = await http.get(Uri.parse(
-            'https://api.mangadex.org/manga/$mangaId/feed?translatedLanguage[]=en&limit=100&offset=$offset&order[chapter]=desc'));
-        if (chapRes.statusCode != 200) break;
-
-        final data = jsonDecode(chapRes.body);
-        total = data['total'] ?? 0;
-        final chapData = data['data'] as List;
-        if (chapData.isEmpty) break;
-
-        for (var c in chapData) {
-          allChapters.add(MangaChapter(
-            id: 'mangadex|${c['id']}',
-            title: c['attributes']['title'] ?? 'Chapter ${c['attributes']['chapter']}',
-            chapterNumber: c['attributes']['chapter']?.toString() ?? '0',
-            volumeNumber: c['attributes']['volume'],
-            publishedAt: c['attributes']['publishAt'] != null ? DateTime.parse(c['attributes']['publishAt']) : null,
-            group: 'MangaDex',
-          ));
-        }
-        offset += 100;
-      }
-      return allChapters;
-    } catch (_) {
-      return [];
-    }
-  }
+  // ─────────────────────────────────────────────────────────────────────────
+  // PUBLIC API
+  // ─────────────────────────────────────────────────────────────────────────
 
   static Future<List<MangaChapter>> fetchAvailableChapters(Manga manga) async {
-    final results = await Future.wait([
-      _getComicKChaptersPaged(manga.title),
-      _getMangaDexChaptersPaged(manga.title),
-    ]);
+    debugPrint('[MANGA] ═══════════════════════════════════════════');
+    debugPrint('[MANGA] fetchAvailableChapters("${manga.title}")');
+    debugPrint('[MANGA] ═══════════════════════════════════════════');
 
-    final comickChapters = results[0];
-    final mangadexChapters = results[1];
-    final Map<String, MangaChapter> mergedMap = {};
+    final List<MangaChapter> chapters = [];
 
-    // PRIORITY ORDER (highest → lowest):
-    //   1. ComicK chapters — image CDN is highly reliable (meo.comick.pictures)
-    //   2. MangaDex Official/TCB scans — only upgrade if higher scan group quality
-    //   3. MangaDex other scans — fill gaps not covered by ComicK
-
-    // Step 1: seed with ComicK (most reliable for image loading)
-    for (final chap in comickChapters) {
-      mergedMap[chap.chapterNumber] = chap;
+    // Priority 1: MangaPill
+    final pillRoute = await _findMangaPillRoute(manga.title);
+    if (pillRoute != null) {
+      chapters.addAll(await _getMangaPillChapters(pillRoute, manga.title));
     }
 
-    // Step 2: MangaDex can override ONLY if it has a higher-quality scan group
-    // (Official or TCB) AND ComicK doesn't already have an official version
-    for (final chap in mangadexChapters) {
-      final existing = mergedMap[chap.chapterNumber];
-      if (existing == null) {
-        // ComicK doesn't have this chapter at all — use MangaDex
-        mergedMap[chap.chapterNumber] = chap;
-      } else {
-        // ComicK has it — only override if MangaDex has a clearly superior group
-        final nGroup = chap.group?.toLowerCase() ?? '';
-        final eGroup = existing.group?.toLowerCase() ?? '';
-        final mdHasOfficial = nGroup.contains('official');
-        final ckHasOfficial = eGroup.contains('official');
-        final mdHasTcb = nGroup.contains('tcb');
-        final ckHasTcb = eGroup.contains('tcb');
-
-        if (mdHasOfficial && !ckHasOfficial) {
-          mergedMap[chap.chapterNumber] = chap;
-        } else if (mdHasTcb && !ckHasTcb && !ckHasOfficial) {
-          mergedMap[chap.chapterNumber] = chap;
-        }
-        // Otherwise keep ComicK — it has more reliable image serving
+    // Priority 2: MangaDex (if no MangaPill chapters found, or just to supplement)
+    if (chapters.isEmpty) {
+      final dxId = await _findMangaDexId(manga);
+      if (dxId != null) {
+        chapters.addAll(await _getMangaDexChapters(dxId));
       }
     }
 
-    if (mergedMap.isEmpty) {
-      final kakalot = await getConsumetChapters(manga.id, 'mangakakalot');
-      for (final chap in kakalot) mergedMap.putIfAbsent(chap.chapterNumber, () => chap);
+    if (chapters.isEmpty) {
+      debugPrint('[MANGA] ❌ No chapters found from any source.');
+      return [];
     }
 
-    final chapters = mergedMap.values.toList();
-    chapters.sort((a, b) {
-      final aNum = double.tryParse(a.chapterNumber) ?? 0.0;
-      final bNum = double.tryParse(b.chapterNumber) ?? 0.0;
-      return bNum.compareTo(aNum);
-    });
+    // Deduplicate
+    final Map<String, MangaChapter> dedupMap = {};
+    for (final ch in chapters) {
+      final key = _normalizeKey(ch.chapterNumber);
+      final existing = dedupMap[key];
+      if (existing == null) {
+        dedupMap[key] = ch;
+      } else {
+        // Prefer native over external
+        final chIsNative = !ch.id.startsWith('mangadex-ext|');
+        final existingIsNative = !existing.id.startsWith('mangadex-ext|');
+        if (chIsNative && !existingIsNative) dedupMap[key] = ch;
+      }
+    }
 
-    return chapters;
+    final result = dedupMap.values.toList()
+      ..sort((a, b) {
+        final aNum = double.tryParse(a.chapterNumber) ?? 0.0;
+        final bNum = double.tryParse(b.chapterNumber) ?? 0.0;
+        return bNum.compareTo(aNum);
+      });
+
+    debugPrint('[MANGA] ✅ Final chapter count: ${result.length}');
+    return result;
   }
 
-  static Future<List<MangaPage>> fetchChapterPages(String chapterId) async {
-    if (chapterId.startsWith('comick|')) {
-      final pages = await getComicKPages(chapterId);
-      if (pages.isNotEmpty) return pages;
-      return [];
-    } else if (chapterId.startsWith('mangadex|')) {
-      // Try MangaDex first
-      final pages = await getMangaDexPages(chapterId);
-      if (pages.isNotEmpty) return pages;
+  // ─────────────────────────────────────────────────────────────────────────
+  // EXTERNAL CHAPTER HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
 
-      // MangaDex at-home can be unreliable; the chapter may also exist on ComicK.
-      // We don't have the chapter number here, so we return empty and let the
-      // reader surface the retry — the user can try a different chapter source.
-      return [];
-    } else if (chapterId.startsWith('consumet|')) {
-      return getConsumetPages(chapterId);
+  static bool isExternalChapter(String chapterId) => chapterId.startsWith('mangadex-ext|');
+
+  static String? getExternalUrl(String chapterId) {
+    if (!isExternalChapter(chapterId)) return null;
+    final parts = chapterId.split('|');
+    return parts.length >= 3 ? Uri.decodeComponent(parts[2]) : null;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PAGE FETCHING ROUTER
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<List<MangaPage>> fetchChapterPages(String chapterId) async {
+    debugPrint('[MANGA] fetchChapterPages: $chapterId');
+    if (chapterId.startsWith('mangapill|')) {
+      final route = chapterId.substring('mangapill|'.length);
+      return _getMangaPillPages(route);
+    }
+    if (chapterId.startsWith('mangadex|')) {
+      return _getMangaDexPages(chapterId);
     }
     return [];
   }

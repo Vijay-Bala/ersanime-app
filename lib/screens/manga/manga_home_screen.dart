@@ -6,6 +6,7 @@ import '../../widgets/manga_card.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../theme/app_theme.dart';
+import '../../main.dart';
 import 'manga_search_screen.dart';
 
 class MangaHomeScreen extends StatefulWidget {
@@ -32,9 +33,17 @@ class _MangaHomeScreenState extends State<MangaHomeScreen> {
     });
     try {
       final data = await getMangaHomeData();
-      if (mounted) setState(() { _data = data; _loading = false; });
+      if (mounted)
+        setState(() {
+          _data = data;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -44,18 +53,14 @@ class _MangaHomeScreenState extends State<MangaHomeScreen> {
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
         backgroundColor: AppTheme.darkBg,
-        title: Text(
-          'Manga',
-          style: TextStyle(
-            color: AppTheme.primary,
-            fontSize: 22.sp,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
+        title: const ModeSwitcherTitle(),
         actions: [
           IconButton(
-            icon: Icon(Icons.search_rounded, color: AppTheme.textPrimary, size: 22.sp),
+            icon: Icon(
+              Icons.search_rounded,
+              color: AppTheme.textPrimary,
+              size: 22.sp,
+            ),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MangaSearchScreen()),
@@ -67,7 +72,11 @@ class _MangaHomeScreenState extends State<MangaHomeScreen> {
       body: _loading
           ? ListView(
               physics: const NeverScrollableScrollPhysics(),
-              children: const [AnimeRowSkeleton(), AnimeRowSkeleton(), AnimeRowSkeleton()],
+              children: const [
+                AnimeRowSkeleton(),
+                AnimeRowSkeleton(),
+                AnimeRowSkeleton(),
+              ],
             )
           : _error != null
           ? ErrorBody(onRetry: _load)
@@ -78,10 +87,30 @@ class _MangaHomeScreenState extends State<MangaHomeScreen> {
               child: ListView(
                 padding: EdgeInsets.only(bottom: 24.h),
                 children: [
-                  _MangaRow(title: '🔥 Trending Now', color: AppTheme.primary, items: _data!.trending, rowIndex: 0),
-                  _MangaRow(title: '⚡ Top Rated', color: AppTheme.accentGreen, items: _data!.topManga, rowIndex: 1),
-                  _MangaRow(title: '👑 Most Popular', color: AppTheme.accentCyan, items: _data!.popular, rowIndex: 2),
-                  _MangaRow(title: '🆕 Recently Added', color: AppTheme.accentPink, items: _data!.recent, rowIndex: 3),
+                  _MangaRow(
+                    title: '🔥 Trending Now',
+                    color: AppTheme.primary,
+                    items: _data!.trending,
+                    rowIndex: 0,
+                  ),
+                  _MangaRow(
+                    title: '⚡ Top Rated',
+                    color: AppTheme.accentGreen,
+                    items: _data!.topManga,
+                    rowIndex: 1,
+                  ),
+                  _MangaRow(
+                    title: '👑 Most Popular',
+                    color: AppTheme.accentCyan,
+                    items: _data!.popular,
+                    rowIndex: 2,
+                  ),
+                  _MangaRow(
+                    title: '🆕 Recently Added',
+                    color: AppTheme.accentPink,
+                    items: _data!.recent,
+                    rowIndex: 3,
+                  ),
                 ],
               ),
             ),
@@ -95,7 +124,12 @@ class _MangaRow extends StatelessWidget {
   final List<Manga> items;
   final int rowIndex;
 
-  const _MangaRow({required this.title, required this.color, required this.items, required this.rowIndex});
+  const _MangaRow({
+    required this.title,
+    required this.color,
+    required this.items,
+    required this.rowIndex,
+  });
 
   @override
   Widget build(BuildContext context) {

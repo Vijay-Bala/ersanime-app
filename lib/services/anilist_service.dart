@@ -22,6 +22,7 @@ const _animeFields = '''
 
 const _mangaFields = '''
   id
+  idMal
   title { english romaji userPreferred }
   coverImage { extraLarge large }
   bannerImage
