@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'services/watchlist_service.dart';
+import 'services/music_playlist_service.dart';
+import 'services/music_player_service.dart';
 import 'screens/anime/anime_home_screen.dart';
 import 'screens/anime/anime_search_screen.dart';
 import 'screens/anime/anime_library_screen.dart';
@@ -14,9 +17,22 @@ import 'screens/media/media_library_screen.dart';
 import 'screens/manga/manga_home_screen.dart';
 import 'screens/manga/manga_search_screen.dart';
 import 'screens/manga/manga_library_screen.dart';
+import 'screens/music/music_home_screen.dart';
+import 'screens/music/music_search_screen.dart';
+import 'screens/music/music_library_screen.dart';
+import 'widgets/music_mini_player.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize background audio (just_audio_background)
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ersa.music.channel',
+    androidNotificationChannelName: 'ERSA Music',
+    androidNotificationOngoing: true,
+    androidStopForegroundOnPause: true,
+  );
+
   Animate.defaultDuration = 350.ms;
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(
@@ -27,12 +43,22 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
+
   final watchlist = WatchlistService();
   await watchlist.load();
+
+  final musicPlaylist = MusicPlaylistService();
+  await musicPlaylist.load();
+
+  final musicPlayer = MusicPlayerService();
+  await musicPlayer.init(musicPlaylist);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: watchlist),
+        ChangeNotifierProvider.value(value: musicPlaylist),
+        ChangeNotifierProvider.value(value: musicPlayer),
         ChangeNotifierProvider(create: (_) => AppModeNotifier()),
       ],
       child: const ERSAApp(),
@@ -40,7 +66,7 @@ void main() async {
   );
 }
 
-enum AppMode { anime, movies, manga }
+enum AppMode { anime, movies, manga, music }
 
 class AppModeNotifier extends ChangeNotifier {
   AppMode _mode = AppMode.anime;
@@ -82,6 +108,7 @@ class _MainNavState extends State<MainNav> {
   int _animeIndex = 0;
   int _moviesIndex = 0;
   int _mangaIndex = 0;
+  int _musicIndex = 0;
 
   static const _animeScreens = [
     AnimeHomeScreen(),
@@ -101,66 +128,78 @@ class _MainNavState extends State<MainNav> {
     MangaLibraryScreen(),
   ];
 
+  static const _musicScreens = [
+    MusicHomeScreen(),
+    MusicSearchScreen(),
+    MusicLibraryScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final modeNotifier = context.watch<AppModeNotifier>();
-    final isAnime = modeNotifier.mode == AppMode.anime;
-    final isManga = modeNotifier.mode == AppMode.manga;
+    final mode = modeNotifier.mode;
+
+    final isAnime = mode == AppMode.anime;
+    final isManga = mode == AppMode.manga;
+    final isMusic = mode == AppMode.music;
 
     int currentIndex;
-    if (isAnime)
-      currentIndex = _animeIndex;
-    else if (isManga)
-      currentIndex = _mangaIndex;
-    else
-      currentIndex = _moviesIndex;
+    if (isAnime) currentIndex = _animeIndex;
+    else if (isManga) currentIndex = _mangaIndex;
+    else if (isMusic) currentIndex = _musicIndex;
+    else currentIndex = _moviesIndex;
 
     Color activeColor;
-    if (isAnime)
-      activeColor = AppTheme.primary;
-    else if (isManga)
-      activeColor = AppTheme.accentGreen;
-    else
-      activeColor = AppTheme.accentOrange;
+    if (isAnime) activeColor = AppTheme.primary;
+    else if (isManga) activeColor = AppTheme.accentGreen;
+    else if (isMusic) activeColor = const Color(0xFFFF1493);
+    else activeColor = AppTheme.accentOrange;
+
+    Widget body;
+    if (isAnime) body = IndexedStack(index: _animeIndex, children: _animeScreens);
+    else if (isManga) body = IndexedStack(index: _mangaIndex, children: _mangaScreens);
+    else if (isMusic) body = IndexedStack(index: _musicIndex, children: _musicScreens);
+    else body = IndexedStack(index: _moviesIndex, children: _moviesScreens);
 
     return Scaffold(
-      body: isAnime
-          ? IndexedStack(index: _animeIndex, children: _animeScreens)
-          : isManga
-          ? IndexedStack(index: _mangaIndex, children: _mangaScreens)
-          : IndexedStack(index: _moviesIndex, children: _moviesScreens),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: currentIndex,
-          selectedItemColor: activeColor,
-          unselectedItemColor: AppTheme.textSecondary,
-          onTap: (i) => setState(() {
-            if (isAnime) {
-              _animeIndex = i;
-            } else if (isManga) {
-              _mangaIndex = i;
-            } else {
-              _moviesIndex = i;
-            }
-          }),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
+      body: body,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Mini player (visible across all sections)
+          const MusicMiniPlayer(),
+          // Bottom navigation
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_rounded),
-              label: 'Search',
+            child: BottomNavigationBar(
+              currentIndex: currentIndex,
+              selectedItemColor: activeColor,
+              unselectedItemColor: AppTheme.textSecondary,
+              onTap: (i) => setState(() {
+                if (isAnime) _animeIndex = i;
+                else if (isManga) _mangaIndex = i;
+                else if (isMusic) _musicIndex = i;
+                else _moviesIndex = i;
+              }),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search_rounded),
+                  label: 'Search',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bookmark_rounded),
+                  label: 'Library',
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_rounded),
-              label: 'Library',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -172,24 +211,23 @@ class ModeSwitcherTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modeNotifier = context.watch<AppModeNotifier>();
-    final isAnime = modeNotifier.mode == AppMode.anime;
-    final isManga = modeNotifier.mode == AppMode.manga;
+    final mode = modeNotifier.mode;
+
+    final isAnime = mode == AppMode.anime;
+    final isManga = mode == AppMode.manga;
+    final isMusic = mode == AppMode.music;
 
     List<Color> gradColors;
-    if (isAnime)
-      gradColors = [AppTheme.primary, AppTheme.accentCyan];
-    else if (isManga)
-      gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
-    else
-      gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
+    if (isAnime) gradColors = [AppTheme.primary, AppTheme.accentCyan];
+    else if (isManga) gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
+    else if (isMusic) gradColors = [const Color(0xFFFF1493), const Color(0xFF9B00FF)];
+    else gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
 
     String label;
-    if (isAnime)
-      label = 'ERSA-Anime';
-    else if (isManga)
-      label = 'ERSA-Manga';
-    else
-      label = 'ERSA-Movies';
+    if (isAnime) label = 'ERSA-Anime';
+    else if (isManga) label = 'ERSA-Manga';
+    else if (isMusic) label = 'ERSA-Music';
+    else label = 'ERSA-Movies';
 
     return GestureDetector(
       onTap: () => _showDropdown(context, modeNotifier),
@@ -233,7 +271,7 @@ class ModeSwitcherTitle extends StatelessWidget {
       position: RelativeRect.fromLTRB(
         offset.dx,
         offset.dy + box.size.height + 4,
-        offset.dx + 220,
+        offset.dx + 240,
         0,
       ),
       items: [
@@ -265,6 +303,16 @@ class ModeSwitcherTitle extends StatelessWidget {
             sublabel: 'Manga & Manhwa reader',
             gradColors: [AppTheme.accentGreen, AppTheme.accentCyan],
             selected: notifier.mode == AppMode.manga,
+          ),
+        ),
+        PopupMenuItem(
+          value: AppMode.music,
+          child: _ModeOption(
+            icon: '🎵',
+            label: 'ERSA-Music',
+            sublabel: 'Songs, Playlists & Lyrics',
+            gradColors: [const Color(0xFFFF1493), const Color(0xFF9B00FF)],
+            selected: notifier.mode == AppMode.music,
           ),
         ),
       ],

@@ -23,6 +23,13 @@ dependencies:
   flutter_animate: ^4.5.2
   android_pip: ^2.0.2
   html: ^0.15.4
+  # Music section
+  just_audio: ^0.9.40
+  just_audio_background: ^0.0.1-beta.13
+  audio_session: ^0.1.21
+  palette_generator: ^0.3.3
+  youtube_explode_dart: ^2.3.4
+  dart_des: ^1.0.2
 
 dev_dependencies:
   flutter_test:

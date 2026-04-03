@@ -8,9 +8,10 @@ import android.os.Bundle
 import com.thesparks.android_pip.PipCallbackHelper
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import com.ryanheise.audioservice.AudioServiceActivity
 import java.net.InetAddress
 
-class MainActivity : FlutterActivity() {
+class MainActivity : AudioServiceActivity() {
     private val callbackHelper = PipCallbackHelper()
 
     override fun onCreate(savedInstanceState: Bundle?) {
