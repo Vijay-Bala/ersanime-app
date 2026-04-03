@@ -29,6 +29,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
   bool _loadingLyrics = false;
   bool _showLyrics = false;
   bool _showQueue = false;
+  final ScrollController _lyricsScrollCtrl = ScrollController();
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
   @override
   void dispose() {
     _rotationCtrl.dispose();
+    _lyricsScrollCtrl.dispose();
     super.dispose();
   }
 
@@ -99,6 +101,22 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
           _rotationCtrl.stop();
         } else if (player.isPlaying && !_rotationCtrl.isAnimating) {
           _rotationCtrl.repeat();
+        }
+
+        // Automatic lyric scrolling
+        if (_showLyrics && _lyrics != null && _lyrics!.lines.isNotEmpty) {
+          final idx = _lyrics!.lines.lastIndexWhere((l) => l.time <= player.position);
+          if (idx != -1 && _lyricsScrollCtrl.hasClients) {
+             WidgetsBinding.instance.addPostFrameCallback((_) {
+               if (_lyricsScrollCtrl.hasClients) {
+                 final offset = (idx * 45.0) - (MediaQuery.of(context).size.height * 0.25);
+                 final target = offset.clamp(0.0, _lyricsScrollCtrl.position.maxScrollExtent);
+                 if ((_lyricsScrollCtrl.offset - target).abs() > 5.0) {
+                   _lyricsScrollCtrl.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+                 }
+               }
+             });
+          }
         }
 
         return Scaffold(
@@ -514,20 +532,50 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                         ],
                       ),
                     )
-                  : SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
-                      child: Text(
-                        _lyrics!.text,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 16.sp,
-                          height: 2.0,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.3,
+                  : _lyrics!.lines.isNotEmpty 
+                      ? ListView.builder(
+                          controller: _lyricsScrollCtrl,
+                          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: MediaQuery.of(context).size.height * 0.3),
+                          itemCount: _lyrics!.lines.length,
+                          itemBuilder: (context, index) {
+                            final line = _lyrics!.lines[index];
+                            final isActive = _lyrics!.lines.lastIndexWhere((l) => l.time <= player.position) == index;
+                            
+                            return Container(
+                              height: 45.0,
+                              alignment: Alignment.center,
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 300),
+                                style: TextStyle(
+                                  color: isActive ? Colors.white : Colors.white38,
+                                  fontSize: isActive ? 18.sp : 15.sp,
+                                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                                  letterSpacing: isActive ? 0.5 : 0.0,
+                                ),
+                                child: Text(
+                                  line.text,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+                          child: Text(
+                            _lyrics!.text,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 16.sp,
+                              height: 2.0,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
         ),
         // Mini playback controls at bottom of lyrics view
         Padding(

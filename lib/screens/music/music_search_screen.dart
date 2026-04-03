@@ -62,18 +62,29 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
     super.dispose();
   }
 
-  Future<void> _search(String q, {String? internalQuery}) async {
+  Future<void> _search(String q, {bool isGenre = false}) async {
     final queryText = q.trim();
     if (queryText.isEmpty || queryText == _lastQuery) return;
     _lastQuery = queryText;
     setState(() => _loading = true);
 
-    final apiQuery = internalQuery ?? queryText;
+    if (isGenre) {
+      final songs = await music_api.searchGenrePlaylistSongs(queryText);
+      if (mounted) {
+        setState(() {
+          _songs = songs;
+          _albums = [];
+          _artists = [];
+          _loading = false;
+        });
+      }
+      return;
+    }
 
     final results = await Future.wait([
-      music_api.searchSongs(apiQuery),
-      music_api.searchAlbums(apiQuery),
-      music_api.searchArtists(apiQuery),
+      music_api.searchSongs(queryText),
+      music_api.searchAlbums(queryText),
+      music_api.searchArtists(queryText),
     ]);
 
     if (mounted) {
@@ -189,10 +200,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
         return GestureDetector(
           onTap: () {
             _controller.text = g['name'] as String;
-            _search(
-              g['name'] as String,
-              internalQuery: 'top hits ${g['name']} 2024',
-            );
+            _search(g['name'] as String, isGenre: true);
           },
           child: Container(
             decoration: BoxDecoration(

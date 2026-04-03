@@ -103,8 +103,6 @@ class Song {
     final imgVal = m['image'] ?? m['more_info']?['image'];
     if (imgVal != null) {
       img = _cleanHtml(imgVal.toString())
-          .replaceAll('150x150', '250x250')
-          .replaceAll('50x50', '250x250')
           .replaceAll('http://', 'https://')
           .trim();
     }
@@ -150,7 +148,7 @@ class Song {
       language: m['language']?.toString() ?? '',
       durationSeconds: int.tryParse(m['duration']?.toString() ?? moreInfo['duration']?.toString() ?? '0') ?? 0,
       downloadUrls: urls,
-      lyricsId: (m['has_lyrics']?.toString() == 'true' || moreInfo['has_lyrics']?.toString() == 'true') ? m['id']?.toString() : null,
+      lyricsId: m['id']?.toString(),
       permaUrl: m['perma_url']?.toString(),
       year: int.tryParse(m['year']?.toString() ?? ''),
       label: moreInfo['label']?.toString(),
@@ -195,18 +193,76 @@ String _cleanHtml(String s) => s
     .replaceAll(RegExp(r'<[^>]*>'), '');
 
 // ─── Lyrics ──────────────────────────────────────────────────────────────────
+class LyricLine {
+  final Duration time;
+  final String text;
+
+  const LyricLine({required this.time, required this.text});
+}
+
 class SongLyrics {
   final String text;
   final bool isTamil;
   final bool hasLyrics;
+  final List<LyricLine> lines;
 
   const SongLyrics({
     required this.text,
-    required this.isTamil,
-    required this.hasLyrics,
+    this.isTamil = false,
+    this.hasLyrics = true,
+    this.lines = const [],
   });
 
-  factory SongLyrics.empty() => const SongLyrics(text: '', isTamil: false, hasLyrics: false);
+  factory SongLyrics.empty() => const SongLyrics(text: '', hasLyrics: false);
+
+  factory SongLyrics.plain(String text, {bool isTamil = false}) {
+    return SongLyrics(
+      text: text,
+      isTamil: isTamil,
+      hasLyrics: text.isNotEmpty,
+      lines: const [],
+    );
+  }
+
+  factory SongLyrics.fromLrc(String lrc, {bool isTamil = false}) {
+    if (lrc.isEmpty) return SongLyrics.empty();
+    
+    final lrcLines = <LyricLine>[];
+    // Regex matches [mm:ss.xx] or [mm:ss.xxx]
+    final RegExp regex = RegExp(r'\[(\d{2,}):(\d{2})\.(\d{2,3})\](.*)');
+    
+    String plainText = '';
+
+    for (var line in lrc.split('\n')) {
+      final match = regex.firstMatch(line);
+      if (match != null) {
+        final min = int.tryParse(match.group(1)!) ?? 0;
+        final sec = int.tryParse(match.group(2)!) ?? 0;
+        var msStr = match.group(3)!;
+        if (msStr.length == 2) msStr += '0';
+        final ms = int.tryParse(msStr) ?? 0;
+        
+        final duration = Duration(minutes: min, seconds: sec, milliseconds: ms);
+        final text = match.group(4)!.trim();
+        
+        lrcLines.add(LyricLine(time: duration, text: text));
+        plainText += '$text\n';
+      } else {
+         // Add non-timestamped lines safely
+         final stripped = line.replaceAll(RegExp(r'\[.*?\]'), '').trim();
+         if (stripped.isNotEmpty) {
+           plainText += '$stripped\n';
+         }
+      }
+    }
+    
+    return SongLyrics(
+      text: plainText.trim(),
+      isTamil: isTamil,
+      hasLyrics: true,
+      lines: lrcLines,
+    );
+  }
 
   factory SongLyrics.fromSaavn(Map<String, dynamic> m, {bool isTamil = false}) {
     final raw = m['lyrics']?.toString() ?? '';
@@ -297,7 +353,7 @@ class MusicAlbum {
         .map((s) => Song.fromSaavnSong(s as Map<String, dynamic>))
         .toList();
     String img = m['image']?.toString() ?? '';
-    img = img.replaceAll('150x150', '500x500').replaceAll('50x50', '500x500');
+    img = img.replaceAll('http://', 'https://').trim();
     return MusicAlbum(
       id: m['albumid']?.toString() ?? m['id']?.toString() ?? '',
       name: _cleanHtml(m['title']?.toString() ?? m['name']?.toString() ?? ''),
@@ -331,7 +387,7 @@ class MusicArtist {
 
   factory MusicArtist.fromSaavn(Map<String, dynamic> m) {
     String img = m['image']?.toString() ?? '';
-    img = img.replaceAll('150x150', '500x500').replaceAll('50x50', '500x500');
+    img = img.replaceAll('http://', 'https://').trim();
     final topSongs = (m['topSongs'] as List<dynamic>? ?? [])
         .map((s) => Song.fromSaavnSong(s as Map<String, dynamic>))
         .toList();
@@ -355,6 +411,8 @@ class MusicHomeData {
   final List<Song> tamilHits;
   final List<Song> hindiFeatured;
   final List<Song> englishTop;
+  final List<Song> teluguHits;
+  final List<Song> malayalamHits;
   final List<MusicAlbum> newReleases;
   final List<Song> recentlyPlayed;
 
@@ -363,6 +421,8 @@ class MusicHomeData {
     required this.tamilHits,
     required this.hindiFeatured,
     required this.englishTop,
+    required this.teluguHits,
+    required this.malayalamHits,
     required this.newReleases,
     required this.recentlyPlayed,
   });
@@ -372,6 +432,8 @@ class MusicHomeData {
     tamilHits: [],
     hindiFeatured: [],
     englishTop: [],
+    teluguHits: [],
+    malayalamHits: [],
     newReleases: [],
     recentlyPlayed: [],
   );

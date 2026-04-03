@@ -27,8 +27,6 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
   MusicHomeData? _data;
   bool _loading = true;
   String? _error;
-  String _selectedLang = 'All';
-  static const _langs = ['All', 'Tamil', 'Hindi', 'English', 'Telugu', 'Malayalam'];
 
   @override
   void initState() {
@@ -158,7 +156,6 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
   List<Widget> _buildContent() {
     final d = _data!;
     return [
-      SliverToBoxAdapter(child: _buildLangChips()),
       SliverToBoxAdapter(child: SizedBox(height: 8.h)),
       if (d.recentlyPlayed.isNotEmpty)
         SliverToBoxAdapter(
@@ -171,98 +168,66 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
         ),
       SliverToBoxAdapter(
         child: _SongSection(
-          title: '🔥 Trending Now',
+          title: 'Trending Now',
           icon: Icons.local_fire_department_rounded,
-          songs: _filterByLang(d.trending),
-          onTap: (s) => _playSong(s, _filterByLang(d.trending)),
+          songs: d.trending,
+          onTap: (s) => _playSong(s, d.trending),
           accentColor: _musicPrimary,
         ).animate().fadeIn(delay: 100.ms),
       ),
-      if (_selectedLang == 'All' || _selectedLang.toLowerCase() == 'tamil')
-        SliverToBoxAdapter(
-          child: _SongSection(
-            title: '🎵 Tamil Hits',
-            icon: Icons.music_note_rounded,
-            songs: d.tamilHits,
-            onTap: (s) => _playSong(s, d.tamilHits),
-            accentColor: const Color(0xFFFF6B35),
-          ).animate().fadeIn(delay: 150.ms),
-        ),
-      if (_selectedLang == 'All' || _selectedLang.toLowerCase() == 'hindi')
-        SliverToBoxAdapter(
-          child: _SongSection(
-            title: '🎤 Hindi Featured',
-            icon: Icons.mic_rounded,
-            songs: d.hindiFeatured,
-            onTap: (s) => _playSong(s, d.hindiFeatured),
-            accentColor: const Color(0xFF00D4FF),
-          ).animate().fadeIn(delay: 200.ms),
-        ),
-      if (_selectedLang == 'All' || _selectedLang.toLowerCase() == 'english')
-        SliverToBoxAdapter(
-          child: _SongSection(
-            title: '🌍 English Top',
-            icon: Icons.language_rounded,
-            songs: d.englishTop,
-            onTap: (s) => _playSong(s, d.englishTop),
-            accentColor: const Color(0xFF00FF88),
-          ).animate().fadeIn(delay: 250.ms),
-        ),
-      if (d.newReleases.isNotEmpty && (_selectedLang == 'All'))
+      SliverToBoxAdapter(
+        child: _SongSection(
+          title: 'Tamil Hits',
+          icon: Icons.music_note_rounded,
+          songs: d.tamilHits,
+          onTap: (s) => _playSong(s, d.tamilHits),
+          accentColor: const Color(0xFFFF6B35),
+        ).animate().fadeIn(delay: 150.ms),
+      ),
+      SliverToBoxAdapter(
+        child: _SongSection(
+          title: 'Hindi Featured',
+          icon: Icons.mic_rounded,
+          songs: d.hindiFeatured,
+          onTap: (s) => _playSong(s, d.hindiFeatured),
+          accentColor: const Color(0xFF00D4FF),
+        ).animate().fadeIn(delay: 200.ms),
+      ),
+      SliverToBoxAdapter(
+        child: _SongSection(
+          title: 'English Top',
+          icon: Icons.language_rounded,
+          songs: d.englishTop,
+          onTap: (s) => _playSong(s, d.englishTop),
+          accentColor: const Color(0xFF00FF88),
+        ).animate().fadeIn(delay: 250.ms),
+      ),
+      SliverToBoxAdapter(
+        child: _SongSection(
+          title: 'Telugu Hits',
+          icon: Icons.audiotrack_rounded,
+          songs: d.teluguHits,
+          onTap: (s) => _playSong(s, d.teluguHits),
+          accentColor: const Color(0xFFFF9100),
+        ).animate().fadeIn(delay: 300.ms),
+      ),
+      SliverToBoxAdapter(
+        child: _SongSection(
+          title: 'Malayalam Hits',
+          icon: Icons.library_music_rounded,
+          songs: d.malayalamHits,
+          onTap: (s) => _playSong(s, d.malayalamHits),
+          accentColor: const Color(0xFF00E676),
+        ).animate().fadeIn(delay: 350.ms),
+      ),
+      if (d.newReleases.isNotEmpty)
         SliverToBoxAdapter(
           child: _AlbumSection(
-            title: '💿 New Releases',
+            title: 'New Releases',
             albums: d.newReleases,
-          ).animate().fadeIn(delay: 300.ms),
+          ).animate().fadeIn(delay: 400.ms),
         ),
     ];
-  }
-
-  List<Song> _filterByLang(List<Song> songs) {
-    if (_selectedLang == 'All') return songs;
-    return songs.where((s) => s.language.toLowerCase() == _selectedLang.toLowerCase()).toList();
-  }
-
-  Widget _buildLangChips() {
-    return SizedBox(
-      height: 44.h,
-      child: ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        scrollDirection: Axis.horizontal,
-        itemCount: _langs.length,
-        separatorBuilder: (_, __) => SizedBox(width: 8.w),
-        itemBuilder: (_, i) {
-          final lang = _langs[i];
-          final selected = _selectedLang == lang;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedLang = lang),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: selected
-                    ? const LinearGradient(colors: [_musicPrimary, _musicSecondary])
-                    : null,
-                color: selected ? null : AppTheme.darkCard,
-                borderRadius: BorderRadius.circular(20),
-                border: selected
-                    ? null
-                    : Border.all(color: AppTheme.darkBorder),
-              ),
-              child: Text(
-                lang,
-                style: TextStyle(
-                  color: selected ? Colors.white : AppTheme.textSecondary,
-                  fontSize: 13.sp,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 }
 

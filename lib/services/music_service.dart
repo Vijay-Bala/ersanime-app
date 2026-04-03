@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 
@@ -156,7 +155,8 @@ Future<List<MusicArtist>> searchArtists(String query) async {
               id: m['id']?.toString() ?? '',
               name: m['name']?.toString() ?? '',
               imageUrl: (m['image']?.toString() ?? '')
-                  .replaceAll('150x150', '500x500'),
+                  .replaceAll('http://', 'https://')
+                  .trim(),
               topSongs: const [],
               albums: const [],
             ))
@@ -165,6 +165,26 @@ Future<List<MusicArtist>> searchArtists(String query) async {
   } catch (_) {
     return [];
   }
+}
+
+/// Retrieve songs from the top playlist matching the genre query
+Future<List<Song>> searchGenrePlaylistSongs(String genre) async {
+  if (genre.trim().isEmpty) return [];
+  // Use "hits" or "top 50" to reliably get a genre playlist
+  final enc = Uri.encodeComponent('$genre top 50');
+  final url =
+      '$_base?__call=search.getPlaylistResults&q=$enc&p=1&n=1&_format=json&_marker=0&ctx=wap6dot0';
+  try {
+    final data = await _getRaw(url);
+    final results = data['results'];
+    if (results is List && results.isNotEmpty) {
+      final listId = results[0]['listid']?.toString() ?? results[0]['id']?.toString();
+      if (listId != null) {
+        return getJioSaavnPlaylistSongs(listId);
+      }
+    }
+  } catch (_) {}
+  return [];
 }
 
 /// Get detailed song info including download URLs.
@@ -183,22 +203,44 @@ Future<Song?> getSongDetail(String id) async {
   return null;
 }
 
-/// Fetch lyrics for a song by its lyrics_id.
+/// Fetch lyrics for a song. Tries lrclib.net first (for synced LRC), then fallback to JioSaavn.
 Future<SongLyrics> getLyrics(Song song) async {
-  if (song.lyricsId == null || song.lyricsId!.isEmpty) {
-    return SongLyrics.empty();
-  }
-  final url =
-      '$_base?__call=lyrics.getLyrics&lyrics_id=${song.lyricsId}&_format=json&_marker=0';
+  // 1. Try LRCLIB for synced lyrics
   try {
-    final data = await _get(url);
-    return SongLyrics.fromSaavn(data, isTamil: song.isTamil);
-  } catch (_) {
-    return SongLyrics.empty();
+    final query = Uri.encodeComponent('${song.title} ${song.artist.split(',').first}');
+    final searchUri = Uri.parse('https://lrclib.net/api/search?q=$query');
+    final res = await http.get(searchUri);
+    if (res.statusCode == 200) {
+      final sData = jsonDecode(res.body) as List;
+      if (sData.isNotEmpty) {
+        // Find best match with synced lyrics, or just plain
+        final best = sData.firstWhere(
+            (e) => e['syncedLyrics'] != null && e['syncedLyrics'].toString().isNotEmpty,
+            orElse: () => sData.first);
+
+        if (best['syncedLyrics'] != null && best['syncedLyrics'].toString().isNotEmpty) {
+          return SongLyrics.fromLrc(best['syncedLyrics'].toString(), isTamil: song.isTamil);
+        } else if (best['plainLyrics'] != null && best['plainLyrics'].toString().isNotEmpty) {
+          return SongLyrics.plain(best['plainLyrics'].toString(), isTamil: song.isTamil);
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 2. Fallback to JioSaavn native
+  if (song.lyricsId != null && song.lyricsId!.isNotEmpty) {
+    try {
+      final url = '$_base?__call=lyrics.getLyrics&lyrics_id=${song.lyricsId}&ctx=wap6dot0&api_version=4&_format=json&_marker=0';
+      final data = await _get(url);
+      final lyrics = SongLyrics.fromSaavn(data, isTamil: song.isTamil);
+      if (lyrics.hasLyrics) return lyrics;
+    } catch (_) {}
   }
+
+  return SongLyrics.empty();
 }
 
-/// Get top charts — returns Tamil, Hindi, English top songs.
+/// Get top charts.
 Future<MusicHomeData> getMusicHomeData({
   List<Song> recentlyPlayed = const [],
 }) async {
@@ -207,6 +249,8 @@ Future<MusicHomeData> getMusicHomeData({
     _fetchChart('tamil'),
     _fetchChart('hindi'),
     _fetchChart('english'),
+    _fetchChart('telugu'),
+    _fetchChart('malayalam'),
     _fetchNewReleases(),
   ]);
 
@@ -217,25 +261,15 @@ Future<MusicHomeData> getMusicHomeData({
     tamilHits: results[0] as List<Song>,
     hindiFeatured: results[1] as List<Song>,
     englishTop: results[2] as List<Song>,
-    newReleases: results[3] as List<MusicAlbum>,
+    teluguHits: results[3] as List<Song>,
+    malayalamHits: results[4] as List<Song>,
+    newReleases: results[5] as List<MusicAlbum>,
     recentlyPlayed: recentlyPlayed,
   );
 }
 
 Future<List<Song>> _fetchChart(String lang) async {
-  // Use JioSaavn's search with language filter — most reliable approach
-  final enc = Uri.encodeComponent('top hits $lang 2024 2025');
-  final url =
-      '$_base?__call=search.getResults&q=$enc&p=1&n=15&_format=json&_marker=0&ctx=wap6dot0';
-  try {
-    final data = await _getRaw(url);
-    final songs = _parseSongsList(data);
-    // Filter to matching language
-    final filtered = songs.where((s) => s.language.toLowerCase() == lang).toList();
-    return filtered.isNotEmpty ? filtered : songs.take(10).toList();
-  } catch (_) {
-    return [];
-  }
+  return await searchGenrePlaylistSongs(lang);
 }
 
 Future<List<MusicAlbum>> _fetchNewReleases() async {
@@ -295,7 +329,7 @@ Future<List<Song>> getJioSaavnPlaylistSongs(String listId) async {
       '$_base?__call=playlist.getDetails&listid=$listId&_format=json&_marker=0&ctx=wap6dot0';
   try {
     final data = await _get(url);
-    final songs = data['songs'];
+    final songs = data['list'] ?? data['songs'];
     if (songs is List) return _parseSongsList(songs);
   } catch (_) {}
   return [];
