@@ -14,19 +14,6 @@ final String _kUserAgent = Platform.isIOS
     ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
     : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
-const _kAllowedHosts = {
-  // Ultra-clean verified sources 
-  'vidbinge.dev',
-  'vidlink.pro',
-  'embed.su',
-  // Regional Aggregators
-  'smashy.stream', 'player.smashy.stream', 'embed.smashystream.com',
-  // vidsrc proxies
-  'vidsrc.xyz', 'vidsrc.net', 'vidsrc.pm', 'vidsrc.in',
-  // Base vidsrc (in case of fallback)
-  'vidsrc.cc', 'vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.mov',
-};
-
 const _kAdHosts = {
   'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
   'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
@@ -44,11 +31,6 @@ const _kAdHosts = {
 bool _isAdHost(String host) =>
     _kAdHosts.any((h) => host == h || host.endsWith('.$h'));
 
-bool _isAllowedNavigation(WebUri? uri) {
-  if (uri == null) return false;
-  final host = uri.host.toLowerCase();
-  return _kAllowedHosts.any((h) => host == h || host.endsWith('.$h'));
-}
 
 const _kAutoAdvanceDelay = Duration(seconds: 12);
 
@@ -293,14 +275,25 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
           return WebResourceResponse(statusCode: 200, data: Uint8List(0));
         return null;
       },
-      onCreateWindow: (ctrl, action) async => false,
+      onCreateWindow: (ctrl, action) async {
+        // Allow target=_blank links within embed players (some providers need this)
+        // but block obvious ad popups
+        final url = action.request.url;
+        if (url == null) return false;
+        final host = url.host.toLowerCase();
+        if (_isAdHost(host)) return false;
+        // Load in the same WebView instead of opening a new window
+        await ctrl.loadUrl(urlRequest: URLRequest(url: url));
+        return true;
+      },
       shouldOverrideUrlLoading: (ctrl, action) async {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
         final host = action.request.url?.host.toLowerCase() ?? '';
+        // Block known ad hosts only — allow everything else.
+        // Embed providers redirect to CDN/stream servers we can't predict,
+        // so a blocklist is the correct approach here.
         if (_isAdHost(host)) return NavigationActionPolicy.CANCEL;
-        if (_isAllowedNavigation(action.request.url))
-          return NavigationActionPolicy.ALLOW;
-        return NavigationActionPolicy.CANCEL;
+        return NavigationActionPolicy.ALLOW;
       },
       onWebViewCreated: (ctrl) => _webCtrl = ctrl,
       onLoadStart: (ctrl, url) {
@@ -601,6 +594,32 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
     );
   }
 
+  /// Maps source index to a short human-readable provider name
+  String _getSourceLabel(int i) {
+    const labels = [
+      'VidLink',   // 0
+      'VidSrc.in', // 1
+      'Smashy',    // 2
+      'VidSrc.pm', // 3
+      'Embed.su',  // 4
+      'Rive 1',    // 5
+      'Rive 2',    // 6
+      'Rive 3',    // 7
+      'Prime',     // 8
+      'Videasy',   // 9
+      'Multi',     // 10
+      'FilmKu',    // 11
+      'NontonGo',  // 12
+      'Auto',      // 13
+      '2Embed',    // 14
+      'VidSrc.to', // 15
+      'VidSrc.me', // 16
+      'VidSrc.cc', // 17
+    ];
+    if (i < labels.length) return labels[i];
+    return '${i + 1}';
+  }
+
   Widget _iconBtn(IconData icon, String label) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
@@ -752,7 +771,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                             ),
                           ),
                           child: Text(
-                            '${i + 1}',
+                            _getSourceLabel(i),
                             style: TextStyle(
                               color: i == _sourceIndex
                                   ? (_playerAlive

@@ -209,6 +209,11 @@ class MusicPlayerService extends ChangeNotifier {
     await seekTo(target);
   }
 
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    notifyListeners();
+  }
+
   void setRepeatMode(PlayerRepeatMode mode) {
     _repeatMode = mode;
     notifyListeners();

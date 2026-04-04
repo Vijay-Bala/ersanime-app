@@ -203,29 +203,42 @@ Future<Song?> getSongDetail(String id) async {
   return null;
 }
 
-/// Fetch lyrics for a song. Tries lrclib.net first (for synced LRC), then fallback to JioSaavn.
+/// Fetch lyrics for a song. Tries lrclib.net first (for synced/romanized LRC), then fallback to JioSaavn.
 Future<SongLyrics> getLyrics(Song song) async {
-  // 1. Try LRCLIB for synced lyrics
-  try {
-    final query = Uri.encodeComponent('${song.title} ${song.artist.split(',').first}');
-    final searchUri = Uri.parse('https://lrclib.net/api/search?q=$query');
-    final res = await http.get(searchUri);
-    if (res.statusCode == 200) {
-      final sData = jsonDecode(res.body) as List;
-      if (sData.isNotEmpty) {
-        // Find best match with synced lyrics, or just plain
-        final best = sData.firstWhere(
-            (e) => e['syncedLyrics'] != null && e['syncedLyrics'].toString().isNotEmpty,
-            orElse: () => sData.first);
+  final isEngOrTamil = song.language.toLowerCase() == 'english' || song.isTamil;
+  final artist = song.artist.split(',').first.trim();
+  final baseQuery = '${song.title} $artist';
 
-        if (best['syncedLyrics'] != null && best['syncedLyrics'].toString().isNotEmpty) {
-          return SongLyrics.fromLrc(best['syncedLyrics'].toString(), isTamil: song.isTamil);
-        } else if (best['plainLyrics'] != null && best['plainLyrics'].toString().isNotEmpty) {
-          return SongLyrics.plain(best['plainLyrics'].toString(), isTamil: song.isTamil);
+  // 1. Try LRCLIB for synced lyrics
+  // We try two searches if it's a "foreign" language to the user (non-Tamil/English)
+  final queries = [
+    baseQuery,
+    if (!isEngOrTamil) '$baseQuery romanized',
+    if (!isEngOrTamil) '$baseQuery english transliteration',
+  ];
+
+  for (final q in queries) {
+    try {
+      final encQuery = Uri.encodeComponent(q);
+      final searchUri = Uri.parse('https://lrclib.net/api/search?q=$encQuery');
+      final res = await http.get(searchUri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final sData = jsonDecode(res.body) as List;
+        if (sData.isNotEmpty) {
+          // Find best match with synced lyrics
+          final best = sData.firstWhere(
+              (e) => e['syncedLyrics'] != null && e['syncedLyrics'].toString().isNotEmpty,
+              orElse: () => sData.first);
+
+          if (best['syncedLyrics'] != null && best['syncedLyrics'].toString().isNotEmpty) {
+            return SongLyrics.fromLrc(best['syncedLyrics'].toString(), isTamil: song.isTamil);
+          } else if (best['plainLyrics'] != null && best['plainLyrics'].toString().isNotEmpty) {
+            return SongLyrics.plain(best['plainLyrics'].toString(), isTamil: song.isTamil);
+          }
         }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  }
 
   // 2. Fallback to JioSaavn native
   if (song.lyricsId != null && song.lyricsId!.isNotEmpty) {

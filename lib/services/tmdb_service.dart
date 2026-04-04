@@ -164,36 +164,75 @@ Future<List<MediaItem>> discoverByGenre(
 
 /// Returns embed URLs for a movie.
 ///
-/// Source priority tuned STRICTLY for No-Ads & No-Captchas UI:
-///  1. vidlink.pro  — Multi-audio, pristine UI, no video ads. Fast 404 skips natively. (Primary reliable source)
-///  2. vidsrc.in    — Fresh Vidsrc mirror; strongly unblocked in India.
-///  3. smashy.stream — Excellent Indian regional database aggregator without Cloudflare.
-///  4. vidsrc.pm    — Alternate premium proxy.
-///  5. embed.su     — Highly stable, lightweight ad-free UI.
+/// Source priority:
+///  1. vidlink.pro    — Primary; clean UI, multi-audio, no ads. (Keep this!)
+///  2. vidsrc.in      — Fresh Vidsrc mirror; unblocked in India.
+///  3. smashy.stream  — Great Indian regional aggregator.
+///  4. vidsrc.pm      — Alternate premium proxy.
+///  5. embed.su       — Stable, lightweight.
+///  6. rive.stream    — Multi-server aggregator (good for regional content).
+///  7. primewire       — Large regional + Hollywood database.
+///  8. player.videasy.net — Clean embed, good regional coverage.
+///  9. multiembed.mov / SuperEmbed — Multi-source aggregator.
+/// 10. autoembed.cc   — Auto-selects best source.
+/// 11. 2embed.cc      — Reliable TMDB-based embed.
+/// 12. vidsrc.to      — Classic VidSrc mirror.
+/// 13. vidsrc.me      — Another classic VidSrc mirror.
+/// 14. vidsrc.cc      — Additional VidSrc fallback.
 List<String> getMovieEmbedUrls(int tmdbId, {bool dubbed = false}) {
-  final vidlinkMovie =
-      'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35';
   return [
-    vidlinkMovie,
+    // ── Keep first — works great for Hollywood ──
+    'https://vidlink.pro/movie/$tmdbId?autoplay=true&primaryColor=FF6B35',
+    // ── Existing reliable fallbacks ──
     'https://vidsrc.in/embed/movie/$tmdbId',
     'https://player.smashy.stream/movie/$tmdbId?tmdb=1',
     'https://vidsrc.pm/embed/movie/$tmdbId',
     'https://embed.su/embed/movie/$tmdbId',
+    // ── Rive Mirrors ──
+    'https://rivestream.net/embed?type=movie&id=$tmdbId',
+    'https://rivestream.xyz/embed?type=movie&id=$tmdbId',
+    'https://rive.icu/embed?type=movie&id=$tmdbId',
+    // ── Fixed & New regional sources ──
+    'https://primewire.tf/embed/movie/?tmdb=$tmdbId',
+    'https://player.videasy.net/movie/$tmdbId',
+    'https://multiembed.mov/directstream.php?video_id=$tmdbId&tmdb=1',
+    'https://filmku.stream/embed/movie?tmdb=$tmdbId',
+    'https://www.nontongo.win/embed/movie/$tmdbId',
+    'https://autoembed.co/movie/tmdb/$tmdbId',
+    'https://www.2embed.cc/embed/$tmdbId',
+    'https://vidsrc.to/embed/movie/$tmdbId',
+    'https://vidsrc.me/embed/movie?tmdb=$tmdbId',
+    'https://vidsrc.cc/v2/embed/movie/$tmdbId',
   ];
 }
 
 /// Returns embed URLs for a TV episode.
-/// Same strict No-Ads / No-Captcha priority as movies.
+/// Same priority as movies — keep first source, new regional fallbacks added.
 List<String> getTvEmbedUrls(int tmdbId, int season, int episode,
     {bool dubbed = false}) {
-  final vidlinkTv =
-      'https://vidlink.pro/tv/$tmdbId/$season/$episode?autoplay=true&primaryColor=FF6B35';
   return [
-    vidlinkTv,
+    // ── Keep first — works great for Hollywood series ──
+    'https://vidlink.pro/tv/$tmdbId/$season/$episode?autoplay=true&primaryColor=FF6B35',
+    // ── Existing reliable fallbacks ──
     'https://vidsrc.in/embed/tv/$tmdbId/$season/$episode',
     'https://player.smashy.stream/tv/$tmdbId?s=$season&e=$episode',
     'https://vidsrc.pm/embed/tv/$tmdbId/$season/$episode',
     'https://embed.su/embed/tv/$tmdbId/$season/$episode',
+    // ── Rive Mirrors ──
+    'https://rivestream.net/embed?type=tv&id=$tmdbId&s=$season&e=$episode',
+    'https://rivestream.xyz/embed?type=tv&id=$tmdbId&s=$season&e=$episode',
+    'https://rive.icu/embed?type=tv&id=$tmdbId&s=$season&e=$episode',
+    // ── Fixed & New regional sources ──
+    'https://primewire.tf/embed/tv/?tmdb=$tmdbId&season=$season&episode=$episode',
+    'https://player.videasy.net/tv/$tmdbId/$season/$episode',
+    'https://multiembed.mov/directstream.php?video_id=$tmdbId&tmdb=1&s=$season&e=$episode',
+    'https://filmku.stream/embed/tv?tmdb=$tmdbId&s=$season&e=$episode',
+    'https://www.nontongo.win/embed/tv/$tmdbId/$season/$episode',
+    'https://autoembed.co/tv/tmdb/$tmdbId/$season/$episode',
+    'https://www.2embed.cc/embedtv/$tmdbId?s=$season&e=$episode',
+    'https://vidsrc.to/embed/tv/$tmdbId/$season/$episode',
+    'https://vidsrc.me/embed/tv?tmdb=$tmdbId&s=$season&e=$episode',
+    'https://vidsrc.cc/v2/embed/tv/$tmdbId/$season/$episode',
   ];
 }
 

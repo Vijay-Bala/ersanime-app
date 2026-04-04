@@ -29,6 +29,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
   bool _loadingLyrics = false;
   bool _showLyrics = false;
   bool _showQueue = false;
+  double _playbackSpeed = 1.0;
   final ScrollController _lyricsScrollCtrl = ScrollController();
 
   @override
@@ -55,7 +56,76 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
     super.dispose();
   }
 
+  void _seekRelative(Duration delta, MusicPlayerService player) {
+    final target = player.position + delta;
+    final clamped = target < Duration.zero
+        ? Duration.zero
+        : (target > player.duration ? player.duration : target);
+    player.seekTo(clamped);
+  }
+
+  void _cycleSpeed(MusicPlayerService player) {
+    const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    final currentIdx = speeds.indexWhere((s) => (s - _playbackSpeed).abs() < 0.01);
+    final nextIdx = (currentIdx + 1) % speeds.length;
+    setState(() => _playbackSpeed = speeds[nextIdx]);
+    player.setSpeed(_playbackSpeed);
+  }
+
+  String _speedLabel() {
+    if ((_playbackSpeed - 1.0).abs() < 0.01) return '1×';
+    if (_playbackSpeed == _playbackSpeed.truncateToDouble())
+      return '${_playbackSpeed.toInt()}×';
+    return '${_playbackSpeed}×';
+  }
+
+  // ─── Language helper methods ───────────────────────────────────────────────
+
+  bool _isOtherLanguageSong(Song song) {
+    final lang = song.language.toLowerCase();
+    return lang.isNotEmpty && lang != 'tamil' && lang != 'english';
+  }
+
+  IconData _lyricsIconForSong(Song song) {
+    if (song.isTamil) return Icons.translate_rounded;
+    if (_isOtherLanguageSong(song)) return Icons.record_voice_over_rounded;
+    return Icons.language_rounded;
+  }
+
+  Color _lyricsColorForSong(Song song) {
+    if (song.isTamil) return const Color(0xFFFF6B35);
+    if (_isOtherLanguageSong(song)) return const Color(0xFFBB80FF);
+    return Colors.white60;
+  }
+
+  String _lyricsLabelForSong(Song song) {
+    if (song.isTamil) return 'Tamil / Thanglish';
+    final lang = song.language.toLowerCase();
+    if (lang.isEmpty) return 'Unknown Language';
+    return _fullLangName(song.language);
+  }
+
+  String _fullLangName(String lang) {
+    switch (lang.toLowerCase()) {
+      case 'hindi':     return 'Hindi (हिन्दी)';
+      case 'telugu':    return 'Telugu (తెలుగు)';
+      case 'malayalam': return 'Malayalam (മലയാളം)';
+      case 'kannada':   return 'Kannada (ಕನ್ನಡ)';
+      case 'punjabi':   return 'Punjabi (ਪੰਜਾਬੀ)';
+      case 'bengali':   return 'Bengali (বাংলা)';
+      case 'marathi':   return 'Marathi (मराठी)';
+      case 'gujarati':  return 'Gujarati (ગુજરાતી)';
+      case 'odia':      return 'Odia (ଓଡ଼ିଆ)';
+      case 'bhojpuri':  return 'Bhojpuri';
+      case 'urdu':      return 'Urdu (اردو)';
+      case 'english':   return 'English';
+      case 'tamil':     return 'Tamil / Thanglish';
+      default:          return lang[0].toUpperCase() + lang.substring(1);
+    }
+  }
+
   Future<void> _updatePalette(Song song) async {
+
     if (_lastSongForPalette?.id == song.id) return;
     _lastSongForPalette = song;
     if (song.imageUrl.isEmpty) return;
@@ -414,6 +484,37 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
               ),
             ],
           ),
+          SizedBox(height: 12.h),
+          // +10/-10 seek row + speed
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // -10 sec
+              _seekChip(Icons.replay_10_rounded, '-10s', () => _seekRelative(const Duration(seconds: -10), player)),
+              // Speed button
+              GestureDetector(
+                onTap: () => _cycleSpeed(player),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Text(
+                    _speedLabel(),
+                    style: TextStyle(
+                      color: (_playbackSpeed - 1.0).abs() > 0.01 ? _musicPrimary : Colors.white60,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              // +10 sec
+              _seekChip(Icons.forward_10_rounded, '+10s', () => _seekRelative(const Duration(seconds: 10), player)),
+            ],
+          ),
           SizedBox(height: 16.h),
           // Bottom row: Lyrics button
           Row(
@@ -471,15 +572,15 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          song.isTamil ? Icons.translate_rounded : Icons.language_rounded,
+                          _lyricsIconForSong(song),
                           size: 12.sp,
-                          color: song.isTamil ? const Color(0xFFFF6B35) : Colors.white60,
+                          color: _lyricsColorForSong(song),
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          song.isTamil ? 'Tamil / Thanglish' : 'English',
+                          _lyricsLabelForSong(song),
                           style: TextStyle(
-                            color: song.isTamil ? const Color(0xFFFF6B35) : Colors.white60,
+                            color: _lyricsColorForSong(song),
                             fontSize: 11.sp,
                           ),
                         ),
@@ -510,7 +611,32 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
         SizedBox(height: 8.h),
         Text(song.title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
         Text(song.artist, style: TextStyle(color: Colors.white60, fontSize: 12.sp)),
-        SizedBox(height: 16.h),
+        SizedBox(height: 8.h),
+        // Language note banner for non-Tamil/English songs
+        if (_isOtherLanguageSong(song))
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 24.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF9B00FF).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: const Color(0xFF9B00FF).withOpacity(0.35)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: const Color(0xFFBB80FF), size: 14.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'Lyrics shown in ${_fullLangName(song.language)} script. '  
+                    'English/Thanglish versions may not be available.',
+                    style: TextStyle(color: const Color(0xFFBB80FF), fontSize: 11.sp, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        SizedBox(height: 8.h),
         // Lyrics body
         Expanded(
           child: _loadingLyrics
@@ -523,16 +649,22 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                           Icon(Icons.lyrics_rounded, color: AppTheme.textSecondary, size: 40.sp),
                           SizedBox(height: 12.h),
                           Text(
-                            song.isTamil
-                                ? 'Lyrics not available for this Tamil song'
-                                : 'Lyrics not available for this song',
+                            'Lyrics not available for this song',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp),
                           ),
+                          if (_isOtherLanguageSong(song)) ...[
+                            SizedBox(height: 6.h),
+                            Text(
+                              'Try searching on LyricsMint or Raaga for ${_fullLangName(song.language)} lyrics',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.6), fontSize: 11.sp),
+                            ),
+                          ],
                         ],
                       ),
                     )
-                  : _lyrics!.lines.isNotEmpty 
+                      : _lyrics!.lines.isNotEmpty 
                       ? ListView.builder(
                           controller: _lyricsScrollCtrl,
                           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: MediaQuery.of(context).size.height * 0.3),
@@ -541,22 +673,22 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                             final line = _lyrics!.lines[index];
                             final isActive = _lyrics!.lines.lastIndexWhere((l) => l.time <= player.position) == index;
                             
-                            return Container(
-                              height: 45.0,
-                              alignment: Alignment.center,
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: isActive ? 6.h : 2.h),
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 300),
                                 style: TextStyle(
                                   color: isActive ? Colors.white : Colors.white38,
-                                  fontSize: isActive ? 18.sp : 15.sp,
-                                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                                  fontSize: isActive ? 18.sp : 14.sp,
+                                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                                   letterSpacing: isActive ? 0.5 : 0.0,
+                                  height: 1.4,
                                 ),
                                 child: Text(
                                   line.text,
                                   textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
                                 ),
                               ),
                             );
@@ -579,36 +711,91 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
         ),
         // Mini playback controls at bottom of lyrics view
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 16.h),
+          child: Column(
             children: [
-              IconButton(
-                icon: Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28.sp),
-                onPressed: player.skipPrevious,
-              ),
-              GestureDetector(
-                onTap: player.togglePlayPause,
-                child: Container(
-                  width: 52.w, height: 52.w,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_musicPrimary, _musicSecondary]),
-                    shape: BoxShape.circle,
+              // Seek ±10 + speed row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _seekChip(Icons.replay_10_rounded, '-10s', () => _seekRelative(const Duration(seconds: -10), player)),
+                  GestureDetector(
+                    onTap: () => _cycleSpeed(player),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white10,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        _speedLabel(),
+                        style: TextStyle(
+                          color: (_playbackSpeed - 1.0).abs() > 0.01 ? _musicPrimary : Colors.white60,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: Colors.white, size: 28.sp,
-                  ),
-                ),
+                  _seekChip(Icons.forward_10_rounded, '+10s', () => _seekRelative(const Duration(seconds: 10), player)),
+                ],
               ),
-              IconButton(
-                icon: Icon(Icons.skip_next_rounded, color: Colors.white, size: 28.sp),
-                onPressed: player.skipNext,
+              SizedBox(height: 8.h),
+              // Main playback row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28.sp),
+                    onPressed: player.skipPrevious,
+                  ),
+                  GestureDetector(
+                    onTap: player.togglePlayPause,
+                    child: Container(
+                      width: 52.w, height: 52.w,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [_musicPrimary, _musicSecondary]),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white, size: 28.sp,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.skip_next_rounded, color: Colors.white, size: 28.sp),
+                    onPressed: player.skipNext,
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _seekChip(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white70, size: 18.sp),
+            SizedBox(width: 4.w),
+            Text(label, style: TextStyle(color: Colors.white70, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
     );
   }
 
