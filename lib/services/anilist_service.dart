@@ -176,7 +176,11 @@ Future<Manga> getMangaDetail(int id) async {
   return Manga.fromJson(data['Media'] as Map<String, dynamic>);
 }
 
-Future<List<Manga>> searchManga(String query, {List<String>? genres, int page = 1}) async {
+Future<List<Manga>> searchManga(
+  String query, {
+  List<String>? genres,
+  int page = 1,
+}) async {
   final data = await _gql(
     '''
     query(\$search:String, \$genres:[String], \$page:Int!) {
@@ -188,7 +192,7 @@ Future<List<Manga>> searchManga(String query, {List<String>? genres, int page = 
     {
       'search': query.isEmpty ? null : query,
       'genres': (genres == null || genres.isEmpty) ? null : genres,
-      'page': page
+      'page': page,
     },
   );
   return _mapMangaList(data['Page']['media']);

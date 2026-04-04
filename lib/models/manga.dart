@@ -1,5 +1,3 @@
-
-
 class Manga {
   final int id;
   final int? idMal;
@@ -39,33 +37,47 @@ class Manga {
     return Manga(
       id: m['id'] ?? 0,
       idMal: m['idMal'] as int?,
-      title: (t['english'] ?? t['romaji'] ?? t['userPreferred'] ?? 'Unknown').toString(),
+      title: (t['english'] ?? t['romaji'] ?? t['userPreferred'] ?? 'Unknown')
+          .toString(),
       image: (c['extraLarge'] ?? c['large'] ?? '').toString(),
       cover: m['bannerImage']?.toString(),
-      description: m['description']?.toString().replaceAll(RegExp(r'<[^>]*>'), ''),
+      description: m['description']?.toString().replaceAll(
+        RegExp(r'<[^>]*>'),
+        '',
+      ),
       format: m['format']?.toString(),
       status: _parseStatus(m['status']?.toString()),
-      rating: m['averageScore'] != null ? (m['averageScore'] as num) / 10.0 : null,
+      rating: m['averageScore'] != null
+          ? (m['averageScore'] as num) / 10.0
+          : null,
       chapters: m['chapters'] as int?,
       volumes: m['volumes'] as int?,
       genres: List<String>.from(m['genres'] ?? []),
       year: (m['startDate'] as Map<String, dynamic>?)?['year'] as int?,
-      recommendations: ((m['recommendations'] as Map<String, dynamic>?)?['nodes'] as List<dynamic>?)
-          ?.map((n) => n['mediaRecommendation'])
-          .where((r) => r != null)
-          .map((r) => Manga.fromJson(r as Map<String, dynamic>))
-          .toList(),
+      recommendations:
+          ((m['recommendations'] as Map<String, dynamic>?)?['nodes']
+                  as List<dynamic>?)
+              ?.map((n) => n['mediaRecommendation'])
+              .where((r) => r != null)
+              .map((r) => Manga.fromJson(r as Map<String, dynamic>))
+              .toList(),
     );
   }
 
   static String? _parseStatus(String? s) {
     switch (s) {
-      case 'RELEASING': return 'Ongoing';
-      case 'FINISHED': return 'Completed';
-      case 'NOT_YET_RELEASED': return 'Upcoming';
-      case 'CANCELLED': return 'Cancelled';
-      case 'HIATUS': return 'Hiatus';
-      default: return s;
+      case 'RELEASING':
+        return 'Ongoing';
+      case 'FINISHED':
+        return 'Completed';
+      case 'NOT_YET_RELEASED':
+        return 'Upcoming';
+      case 'CANCELLED':
+        return 'Cancelled';
+      case 'HIATUS':
+        return 'Hiatus';
+      default:
+        return s;
     }
   }
 }
@@ -94,10 +106,7 @@ class MangaPage {
   final int index;
   final String imageUrl;
 
-  const MangaPage({
-    required this.index,
-    required this.imageUrl,
-  });
+  const MangaPage({required this.index, required this.imageUrl});
 }
 
 class MangaHomeData {

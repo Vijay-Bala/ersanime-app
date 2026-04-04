@@ -107,7 +107,11 @@ class MusicPlaylistService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> reorderSongs(String playlistId, int oldIndex, int newIndex) async {
+  Future<void> reorderSongs(
+    String playlistId,
+    int oldIndex,
+    int newIndex,
+  ) async {
     final idx = _playlists.indexWhere((p) => p.id == playlistId);
     if (idx == -1) return;
     final songs = _playlists[idx].songs;
@@ -121,9 +125,7 @@ class MusicPlaylistService extends ChangeNotifier {
   /// Bulk-add songs from an import (Spotify/YT) — used by playlist_import_service
   Future<MusicPlaylist> importPlaylist(MusicPlaylist playlist) async {
     // Avoid duplicate playlist by source ID
-    final exists = _playlists.where(
-      (p) => p.id == playlist.id,
-    ).toList();
+    final exists = _playlists.where((p) => p.id == playlist.id).toList();
     if (exists.isNotEmpty) {
       // Update songs
       final idx = _playlists.indexOf(exists.first);

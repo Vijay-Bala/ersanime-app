@@ -33,9 +33,17 @@ class _AnimeHomeScreenState extends State<AnimeHomeScreen> {
     });
     try {
       final data = await getAnimeHomeData();
-      if (mounted) setState(() { _data = data; _loading = false; });
+      if (mounted)
+        setState(() {
+          _data = data;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -48,7 +56,11 @@ class _AnimeHomeScreenState extends State<AnimeHomeScreen> {
         title: const ModeSwitcherTitle(),
         actions: [
           IconButton(
-            icon: Icon(Icons.search_rounded, color: AppTheme.textPrimary, size: 22.sp),
+            icon: Icon(
+              Icons.search_rounded,
+              color: AppTheme.textPrimary,
+              size: 22.sp,
+            ),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AnimeSearchScreen()),
@@ -60,7 +72,11 @@ class _AnimeHomeScreenState extends State<AnimeHomeScreen> {
       body: _loading
           ? ListView(
               physics: const NeverScrollableScrollPhysics(),
-              children: const [AnimeRowSkeleton(), AnimeRowSkeleton(), AnimeRowSkeleton()],
+              children: const [
+                AnimeRowSkeleton(),
+                AnimeRowSkeleton(),
+                AnimeRowSkeleton(),
+              ],
             )
           : _error != null
           ? ErrorBody(onRetry: _load)
@@ -71,10 +87,30 @@ class _AnimeHomeScreenState extends State<AnimeHomeScreen> {
               child: ListView(
                 padding: EdgeInsets.only(bottom: 24.h),
                 children: [
-                  _AnimeRow(title: '🔥 Trending Now', color: AppTheme.primary, items: _data!.trending, rowIndex: 0),
-                  _AnimeRow(title: '⚡ Top Airing', color: AppTheme.accentGreen, items: _data!.topAiring, rowIndex: 1),
-                  _AnimeRow(title: '👑 Most Popular', color: AppTheme.accentCyan, items: _data!.popular, rowIndex: 2),
-                  _AnimeRow(title: '🆕 Recently Added', color: AppTheme.accentPink, items: _data!.recent, rowIndex: 3),
+                  _AnimeRow(
+                    title: '🔥 Trending Now',
+                    color: AppTheme.primary,
+                    items: _data!.trending,
+                    rowIndex: 0,
+                  ),
+                  _AnimeRow(
+                    title: '⚡ Top Airing',
+                    color: AppTheme.accentGreen,
+                    items: _data!.topAiring,
+                    rowIndex: 1,
+                  ),
+                  _AnimeRow(
+                    title: '👑 Most Popular',
+                    color: AppTheme.accentCyan,
+                    items: _data!.popular,
+                    rowIndex: 2,
+                  ),
+                  _AnimeRow(
+                    title: '🆕 Recently Added',
+                    color: AppTheme.accentPink,
+                    items: _data!.recent,
+                    rowIndex: 3,
+                  ),
                 ],
               ),
             ),
@@ -87,7 +123,12 @@ class _AnimeRow extends StatelessWidget {
   final Color color;
   final List<Anime> items;
   final int rowIndex;
-  const _AnimeRow({required this.title, required this.color, required this.items, required this.rowIndex});
+  const _AnimeRow({
+    required this.title,
+    required this.color,
+    required this.items,
+    required this.rowIndex,
+  });
 
   @override
   Widget build(BuildContext context) {

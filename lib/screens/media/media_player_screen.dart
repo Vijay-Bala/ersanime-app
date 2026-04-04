@@ -15,22 +15,44 @@ final String _kUserAgent = Platform.isIOS
     : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 const _kAdHosts = {
-  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
-  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
-  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
-  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
-  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
-  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
-  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
-  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
-  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
-  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
+  'adexchangeclear.com',
+  'usrpubtrk.com',
+  'acscdn.com',
+  'ieenhijxbigyt.space',
+  'cloudnestra.com',
+  'vsembed.ru',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googletagmanager.com',
+  'googletagservices.com',
+  'google-analytics.com',
+  'adservice.google.com',
+  'amazon-adsystem.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'popcash.net',
+  'propellerads.com',
+  'adsterra.com',
+  'trafficjunky.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficfactory.biz',
+  'hilltopads.net',
+  'ero-advertising.com',
+  'adnxs.com',
+  'advertising.com',
+  'criteo.com',
+  'rubiconproject.com',
+  'openx.net',
+  'pubmatic.com',
+  'smartadserver.com',
+  'imasdk.googleapis.com',
   'disable-devtool',
 };
 
 bool _isAdHost(String host) =>
     _kAdHosts.any((h) => host == h || host.endsWith('.$h'));
-
 
 const _kAutoAdvanceDelay = Duration(seconds: 12);
 
@@ -165,11 +187,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       _playerAlive = false;
     });
     _cancelAutoAdvance();
-    _webCtrl?.loadUrl(
-      urlRequest: URLRequest(
-        url: WebUri(_sources[i]),
-      ),
-    );
+    _webCtrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_sources[i])));
   }
 
   void _playEpisode(TvEpisode ep) {
@@ -186,11 +204,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       season: widget.season!,
       episode: ep.number,
     );
-    _webCtrl?.loadUrl(
-      urlRequest: URLRequest(
-        url: WebUri(_currentUrl),
-      ),
-    );
+    _webCtrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_currentUrl)));
     widget.onEpisodeChange?.call(ep);
   }
 
@@ -246,13 +260,12 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   // ── WebView built ONCE in initState ─────────────────────────────────────
   Widget _buildWebView() {
     return InAppWebView(
-      initialUrlRequest: URLRequest(
-        url: WebUri(_currentUrl),
-      ),
+      initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
       initialSettings: InAppWebViewSettings(
         userAgent: _kUserAgent,
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
+        allowsPictureInPictureMediaPlayback: true,
         javaScriptEnabled: true,
         supportMultipleWindows: true,
         javaScriptCanOpenWindowsAutomatically: false,
@@ -425,12 +438,16 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
         })();
       ''',
       );
-      
+
       if (result == 'cloudflare') {
-        debugPrint('[MEDIA] Cloudflare verification detected. Halting auto-skip timer to let user solve it.');
+        debugPrint(
+          '[MEDIA] Cloudflare verification detected. Halting auto-skip timer to let user solve it.',
+        );
         _cancelAutoAdvance(updateState: true);
       } else if (result == 'error') {
-        debugPrint('[MEDIA] Server reported error page natively. Skipping automatically.');
+        debugPrint(
+          '[MEDIA] Server reported error page natively. Skipping automatically.',
+        );
         _cancelAutoAdvance();
         Future.microtask(_goNextSource);
       } else if (result == 'video') {
@@ -597,21 +614,21 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   /// Maps source index to a short human-readable provider name
   String _getSourceLabel(int i) {
     const labels = [
-      'VidLink',   // 0
+      'VidLink', // 0
       'VidSrc.in', // 1
-      'Smashy',    // 2
+      'Smashy', // 2
       'VidSrc.pm', // 3
-      'Embed.su',  // 4
-      'Rive 1',    // 5
-      'Rive 2',    // 6
-      'Rive 3',    // 7
-      'Prime',     // 8
-      'Videasy',   // 9
-      'Multi',     // 10
-      'FilmKu',    // 11
-      'NontonGo',  // 12
-      'Auto',      // 13
-      '2Embed',    // 14
+      'Embed.su', // 4
+      'Rive 1', // 5
+      'Rive 2', // 6
+      'Rive 3', // 7
+      'Prime', // 8
+      'Videasy', // 9
+      'Multi', // 10
+      'FilmKu', // 11
+      'NontonGo', // 12
+      'Auto', // 13
+      '2Embed', // 14
       'VidSrc.to', // 15
       'VidSrc.me', // 16
       'VidSrc.cc', // 17

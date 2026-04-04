@@ -9,11 +9,12 @@ class NextAiringEpisode {
     required this.timeUntilAiring,
   });
 
-  factory NextAiringEpisode.fromJson(Map<String, dynamic> j) => NextAiringEpisode(
-    episode: j['episode'] ?? 0,
-    airingAt: j['airingAt'] ?? 0,
-    timeUntilAiring: j['timeUntilAiring'] ?? 0,
-  );
+  factory NextAiringEpisode.fromJson(Map<String, dynamic> j) =>
+      NextAiringEpisode(
+        episode: j['episode'] ?? 0,
+        airingAt: j['airingAt'] ?? 0,
+        timeUntilAiring: j['timeUntilAiring'] ?? 0,
+      );
 }
 
 class Anime {
@@ -54,36 +55,49 @@ class Anime {
     final c = m['coverImage'] as Map<String, dynamic>? ?? {};
     return Anime(
       id: m['id'] ?? 0,
-      title: (t['english'] ?? t['romaji'] ?? t['userPreferred'] ?? 'Unknown').toString(),
+      title: (t['english'] ?? t['romaji'] ?? t['userPreferred'] ?? 'Unknown')
+          .toString(),
       image: (c['extraLarge'] ?? c['large'] ?? '').toString(),
       cover: m['bannerImage']?.toString(),
-      description: m['description']?.toString().replaceAll(RegExp(r'<[^>]*>'), ''),
+      description: m['description']?.toString().replaceAll(
+        RegExp(r'<[^>]*>'),
+        '',
+      ),
       format: m['format']?.toString(),
       status: _parseStatus(m['status']?.toString()),
-      rating: m['averageScore'] != null ? (m['averageScore'] as num) / 10.0 : null,
+      rating: m['averageScore'] != null
+          ? (m['averageScore'] as num) / 10.0
+          : null,
       episodes: m['episodes'] as int?,
       genres: List<String>.from(m['genres'] ?? []),
       year: (m['startDate'] as Map<String, dynamic>?)?['year'] as int?,
-      studios: ((m['studios'] as Map<String, dynamic>?)?['nodes'] as List<dynamic>?)
-          ?.map((n) => n['name'].toString())
-          .toList(),
+      studios:
+          ((m['studios'] as Map<String, dynamic>?)?['nodes'] as List<dynamic>?)
+              ?.map((n) => n['name'].toString())
+              .toList(),
       nextAiringEpisode: m['nextAiringEpisode'] != null
           ? NextAiringEpisode.fromJson(m['nextAiringEpisode'])
           : null,
-      recommendations: ((m['recommendations'] as Map<String, dynamic>?)?['nodes'] as List<dynamic>?)
-          ?.map((n) => n['mediaRecommendation'])
-          .where((r) => r != null)
-          .map((r) => Anime.fromJson(r as Map<String, dynamic>))
-          .toList(),
+      recommendations:
+          ((m['recommendations'] as Map<String, dynamic>?)?['nodes']
+                  as List<dynamic>?)
+              ?.map((n) => n['mediaRecommendation'])
+              .where((r) => r != null)
+              .map((r) => Anime.fromJson(r as Map<String, dynamic>))
+              .toList(),
     );
   }
 
   static String? _parseStatus(String? s) {
     switch (s) {
-      case 'RELEASING': return 'Ongoing';
-      case 'FINISHED': return 'Completed';
-      case 'NOT_YET_RELEASED': return 'Upcoming';
-      default: return s;
+      case 'RELEASING':
+        return 'Ongoing';
+      case 'FINISHED':
+        return 'Completed';
+      case 'NOT_YET_RELEASED':
+        return 'Upcoming';
+      default:
+        return s;
     }
   }
 }

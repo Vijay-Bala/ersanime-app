@@ -46,7 +46,10 @@ class MusicPlayerService extends ChangeNotifier {
 
   double get progress {
     if (_duration.inMilliseconds == 0) return 0;
-    return (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0);
+    return (_position.inMilliseconds / _duration.inMilliseconds).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────
@@ -62,7 +65,8 @@ class MusicPlayerService extends ChangeNotifier {
     // Player state stream
     _player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
-      _isLoading = state.processingState == ProcessingState.loading ||
+      _isLoading =
+          state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering;
 
       // Auto-advance on song complete
@@ -220,7 +224,8 @@ class MusicPlayerService extends ChangeNotifier {
   }
 
   void toggleRepeat() {
-    final next = PlayerRepeatMode.values[(_repeatMode.index + 1) % PlayerRepeatMode.values.length];
+    final next = PlayerRepeatMode
+        .values[(_repeatMode.index + 1) % PlayerRepeatMode.values.length];
     setRepeatMode(next);
   }
 

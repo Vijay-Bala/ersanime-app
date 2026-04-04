@@ -100,9 +100,14 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
   void _playSong(Song song) {
     context.read<MusicPlayerService>().playPlaylist(
       _songs.isNotEmpty ? _songs : [song],
-      startIndex: _songs.indexWhere((s) => s.id == song.id).clamp(0, _songs.length - 1),
+      startIndex: _songs
+          .indexWhere((s) => s.id == song.id)
+          .clamp(0, _songs.length - 1),
     );
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPlayerScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MusicPlayerScreen()),
+    );
   }
 
   @override
@@ -144,7 +149,10 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
         prefixIcon: const Icon(Icons.search_rounded, color: _musicPrimary),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear_rounded, color: AppTheme.textSecondary),
+                icon: const Icon(
+                  Icons.clear_rounded,
+                  color: AppTheme.textSecondary,
+                ),
                 onPressed: () {
                   _controller.clear();
                   setState(() {
@@ -202,39 +210,46 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
             _controller.text = g['name'] as String;
             _search(g['name'] as String, isGenre: true);
           },
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [color.withOpacity(0.8), color.withOpacity(0.3)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -10,
-                  bottom: -10,
-                  child: Text(
-                    g['icon'] as String,
-                    style: TextStyle(fontSize: 50.sp),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(14.w),
-                  child: Text(
-                    g['name'] as String,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14.sp,
+          child:
+              Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          color.withOpacity(0.8),
+                          color.withOpacity(0.3),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(delay: Duration(milliseconds: i * 40)).scale(begin: const Offset(0.9, 0.9)),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -10,
+                          bottom: -10,
+                          child: Text(
+                            g['icon'] as String,
+                            style: TextStyle(fontSize: 50.sp),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(14.w),
+                          child: Text(
+                            g['name'] as String,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(delay: Duration(milliseconds: i * 40))
+                  .scale(begin: const Offset(0.9, 0.9)),
         );
       },
     );
@@ -242,15 +257,13 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
 
   Widget _buildResults() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: _musicPrimary));
+      return const Center(
+        child: CircularProgressIndicator(color: _musicPrimary),
+      );
     }
     return TabBarView(
       controller: _tabController,
-      children: [
-        _buildSongsList(),
-        _buildAlbumsList(),
-        _buildArtistsList(),
-      ],
+      children: [_buildSongsList(), _buildAlbumsList(), _buildArtistsList()],
     );
   }
 
@@ -285,14 +298,40 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
               width: 50.w,
               height: 50.w,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: AppTheme.darkCard, child: const Icon(Icons.album_rounded, color: _musicSecondary)),
-              errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard, child: const Icon(Icons.album_rounded, color: _musicSecondary)),
+              placeholder: (_, __) => Container(
+                color: AppTheme.darkCard,
+                child: const Icon(Icons.album_rounded, color: _musicSecondary),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: AppTheme.darkCard,
+                child: const Icon(Icons.album_rounded, color: _musicSecondary),
+              ),
             ),
           ),
-          title: Text(album.name, style: TextStyle(color: AppTheme.textPrimary, fontSize: 14.sp, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(album.artist, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: Text(album.year, style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp)),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MusicAlbumScreen(album: album))),
+          title: Text(
+            album.name,
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            album.artist,
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Text(
+            album.year,
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp),
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MusicAlbumScreen(album: album)),
+          ),
         ).animate().fadeIn(delay: Duration(milliseconds: i * 30));
       },
     );
@@ -314,14 +353,50 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
               width: 50.w,
               height: 50.w,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: AppTheme.darkCard, child: Icon(Icons.person_rounded, color: _musicPrimary, size: 28.sp)),
-              errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard, child: Icon(Icons.person_rounded, color: _musicPrimary, size: 28.sp)),
+              placeholder: (_, __) => Container(
+                color: AppTheme.darkCard,
+                child: Icon(
+                  Icons.person_rounded,
+                  color: _musicPrimary,
+                  size: 28.sp,
+                ),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: AppTheme.darkCard,
+                child: Icon(
+                  Icons.person_rounded,
+                  color: _musicPrimary,
+                  size: 28.sp,
+                ),
+              ),
             ),
           ),
-          title: Text(artist.name, style: TextStyle(color: AppTheme.textPrimary, fontSize: 14.sp, fontWeight: FontWeight.w600)),
-          subtitle: const Text('Artist', style: TextStyle(color: AppTheme.textSecondary)),
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textSecondary, size: 14),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MusicArtistScreen(artistId: artist.id, artistName: artist.name))),
+          title: Text(
+            artist.name,
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: const Text(
+            'Artist',
+            style: TextStyle(color: AppTheme.textSecondary),
+          ),
+          trailing: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: AppTheme.textSecondary,
+            size: 14,
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MusicArtistScreen(
+                artistId: artist.id,
+                artistName: artist.name,
+              ),
+            ),
+          ),
         ).animate().fadeIn(delay: Duration(milliseconds: i * 30));
       },
     );
@@ -333,7 +408,10 @@ class _MusicSearchScreenState extends State<MusicSearchScreen>
       children: [
         Icon(icon, size: 48.sp, color: AppTheme.textSecondary),
         SizedBox(height: 12.h),
-        Text(msg, style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp)),
+        Text(
+          msg,
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp),
+        ),
       ],
     ),
   );
@@ -345,7 +423,12 @@ class SongListTile extends StatelessWidget {
   final VoidCallback onTap;
   final bool showMenu;
 
-  const SongListTile({super.key, required this.song, required this.onTap, this.showMenu = true});
+  const SongListTile({
+    super.key,
+    required this.song,
+    required this.onTap,
+    this.showMenu = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,15 +441,25 @@ class SongListTile extends StatelessWidget {
           width: 52.w,
           height: 52.w,
           fit: BoxFit.cover,
-          placeholder: (_, __) => Container(color: AppTheme.darkCard, child: const Icon(Icons.music_note_rounded, color: _musicPrimary)),
-          errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard, child: const Icon(Icons.music_note_rounded, color: _musicPrimary)),
+          placeholder: (_, __) => Container(
+            color: AppTheme.darkCard,
+            child: const Icon(Icons.music_note_rounded, color: _musicPrimary),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            color: AppTheme.darkCard,
+            child: const Icon(Icons.music_note_rounded, color: _musicPrimary),
+          ),
         ),
       ),
       title: Text(
         song.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: AppTheme.textPrimary, fontSize: 14.sp, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       subtitle: Row(
         children: [
@@ -385,9 +478,18 @@ class SongListTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFF6B35).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.4)),
+                border: Border.all(
+                  color: const Color(0xFFFF6B35).withOpacity(0.4),
+                ),
               ),
-              child: Text('TN', style: TextStyle(color: const Color(0xFFFF6B35), fontSize: 9.sp, fontWeight: FontWeight.w800)),
+              child: Text(
+                'TN',
+                style: TextStyle(
+                  color: const Color(0xFFFF6B35),
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
         ],
       ),
@@ -395,12 +497,21 @@ class SongListTile extends StatelessWidget {
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(song.displayDuration, style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp)),
+                Text(
+                  song.displayDuration,
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11.sp,
+                  ),
+                ),
                 SizedBox(width: 4.w),
                 _SongMenu(song: song),
               ],
             )
-          : Text(song.displayDuration, style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp)),
+          : Text(
+              song.displayDuration,
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp),
+            ),
       onTap: onTap,
     );
   }
@@ -414,20 +525,46 @@ class _SongMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert_rounded, color: AppTheme.textSecondary, size: 18.sp),
+      icon: Icon(
+        Icons.more_vert_rounded,
+        color: AppTheme.textSecondary,
+        size: 18.sp,
+      ),
       color: AppTheme.darkCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppTheme.darkBorder)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppTheme.darkBorder),
+      ),
       itemBuilder: (_) => [
-        const PopupMenuItem(value: 'queue', child: _MenuItemRow(icon: Icons.queue_music_rounded, label: 'Add to Queue')),
-        const PopupMenuItem(value: 'like', child: _MenuItemRow(icon: Icons.favorite_rounded, label: 'Like Song')),
-        const PopupMenuItem(value: 'playlist', child: _MenuItemRow(icon: Icons.playlist_add_rounded, label: 'Add to Playlist')),
+        const PopupMenuItem(
+          value: 'queue',
+          child: _MenuItemRow(
+            icon: Icons.queue_music_rounded,
+            label: 'Add to Queue',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'like',
+          child: _MenuItemRow(icon: Icons.favorite_rounded, label: 'Like Song'),
+        ),
+        const PopupMenuItem(
+          value: 'playlist',
+          child: _MenuItemRow(
+            icon: Icons.playlist_add_rounded,
+            label: 'Add to Playlist',
+          ),
+        ),
       ],
       onSelected: (v) {
         switch (v) {
           case 'queue':
             context.read<MusicPlayerService>().addToQueue(song);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Added to queue: ${song.title}'), backgroundColor: AppTheme.darkCard, duration: const Duration(seconds: 2)),
+              SnackBar(
+                content: Text('Added to queue: ${song.title}'),
+                backgroundColor: AppTheme.darkCard,
+                duration: const Duration(seconds: 2),
+              ),
             );
             break;
           case 'like':

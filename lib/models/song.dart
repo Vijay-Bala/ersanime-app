@@ -46,11 +46,12 @@ class Song {
     if (downloadUrls.isEmpty) return '';
     // JioSaavn returns URLs with quality suffix: _96, _160, _320
     // Sort descending by quality marker
-    final sorted = [...downloadUrls]..sort((a, b) {
-      final qa = _qualityScore(a);
-      final qb = _qualityScore(b);
-      return qb.compareTo(qa);
-    });
+    final sorted = [...downloadUrls]
+      ..sort((a, b) {
+        final qa = _qualityScore(a);
+        final qb = _qualityScore(b);
+        return qb.compareTo(qa);
+      });
     return sorted.first;
   }
 
@@ -102,9 +103,9 @@ class Song {
     String img = '';
     final imgVal = m['image'] ?? m['more_info']?['image'];
     if (imgVal != null) {
-      img = _cleanHtml(imgVal.toString())
-          .replaceAll('http://', 'https://')
-          .trim();
+      img = _cleanHtml(
+        imgVal.toString(),
+      ).replaceAll('http://', 'https://').trim();
     }
 
     // Download URLs — JioSaavn returns them in 'more_info' or directly
@@ -122,16 +123,24 @@ class Song {
 
     // Fallback: try encrypted_media_url / media_url
     if (urls.isEmpty) {
-      final enc = m['encrypted_media_url']?.toString() ?? moreInfo['encrypted_media_url']?.toString() ?? '';
-      if (enc.isNotEmpty && enc != 'null') urls.add(_decryptSaavnUrl(enc, '320'));
-      final med = m['media_url']?.toString() ?? moreInfo['media_url']?.toString() ?? '';
+      final enc =
+          m['encrypted_media_url']?.toString() ??
+          moreInfo['encrypted_media_url']?.toString() ??
+          '';
+      if (enc.isNotEmpty && enc != 'null')
+        urls.add(_decryptSaavnUrl(enc, '320'));
+      final med =
+          m['media_url']?.toString() ?? moreInfo['media_url']?.toString() ?? '';
       if (med.isNotEmpty && med != 'null' && !urls.contains(med)) urls.add(med);
     }
 
     final artistsRaw = m['more_info']?['artistMap']?['primary_artists'];
     String artist = 'Unknown Artist';
     if (artistsRaw is List && artistsRaw.isNotEmpty) {
-      artist = artistsRaw.map((a) => a['name']?.toString() ?? '').where((s) => s.isNotEmpty).join(', ');
+      artist = artistsRaw
+          .map((a) => a['name']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .join(', ');
     } else if (m['primary_artists'] != null) {
       artist = m['primary_artists'].toString();
     } else if (m['singers'] != null) {
@@ -140,13 +149,23 @@ class Song {
 
     return Song(
       id: m['id']?.toString() ?? '',
-      title: _cleanHtml(m['song']?.toString() ?? m['title']?.toString() ?? 'Unknown'),
+      title: _cleanHtml(
+        m['song']?.toString() ?? m['title']?.toString() ?? 'Unknown',
+      ),
       artist: _cleanHtml(artist),
-      album: _cleanHtml(moreInfo['album']?.toString() ?? m['album']?.toString() ?? ''),
+      album: _cleanHtml(
+        moreInfo['album']?.toString() ?? m['album']?.toString() ?? '',
+      ),
       albumId: moreInfo['albumid']?.toString() ?? '',
       imageUrl: img,
       language: m['language']?.toString() ?? '',
-      durationSeconds: int.tryParse(m['duration']?.toString() ?? moreInfo['duration']?.toString() ?? '0') ?? 0,
+      durationSeconds:
+          int.tryParse(
+            m['duration']?.toString() ??
+                moreInfo['duration']?.toString() ??
+                '0',
+          ) ??
+          0,
       downloadUrls: urls,
       lyricsId: m['id']?.toString(),
       permaUrl: m['perma_url']?.toString(),
@@ -164,7 +183,11 @@ String _decryptSaavnUrl(String encrypted, String quality) {
   if (!url.contains('.mp4') && !url.contains('.m4a') && !url.contains('http')) {
     try {
       final key = '38346591'.codeUnits;
-      final des = DES(key: key, mode: DESMode.ECB, paddingType: DESPaddingType.PKCS7);
+      final des = DES(
+        key: key,
+        mode: DESMode.ECB,
+        paddingType: DESPaddingType.PKCS7,
+      );
       // Added trim() to fix base64Decode whitespace exception
       final decoded = base64Decode(url.trim());
       final decrypted = des.decrypt(decoded);
@@ -173,9 +196,9 @@ String _decryptSaavnUrl(String encrypted, String quality) {
       print('Error decrypting Saavn URL: $e');
     }
   }
-  
+
   if (url.startsWith('http://')) url = 'https://${url.substring(7)}';
-  
+
   // Some versions return _96.mp4 style — replace with correct quality
   url = url
       .replaceAll('_96.', '_$quality.')
@@ -226,11 +249,11 @@ class SongLyrics {
 
   factory SongLyrics.fromLrc(String lrc, {bool isTamil = false}) {
     if (lrc.isEmpty) return SongLyrics.empty();
-    
+
     final lrcLines = <LyricLine>[];
     // Regex matches [mm:ss.xx] or [mm:ss.xxx]
     final RegExp regex = RegExp(r'\[(\d{2,}):(\d{2})\.(\d{2,3})\](.*)');
-    
+
     String plainText = '';
 
     for (var line in lrc.split('\n')) {
@@ -241,21 +264,21 @@ class SongLyrics {
         var msStr = match.group(3)!;
         if (msStr.length == 2) msStr += '0';
         final ms = int.tryParse(msStr) ?? 0;
-        
+
         final duration = Duration(minutes: min, seconds: sec, milliseconds: ms);
         final text = match.group(4)!.trim();
-        
+
         lrcLines.add(LyricLine(time: duration, text: text));
         plainText += '$text\n';
       } else {
-         // Add non-timestamped lines safely
-         final stripped = line.replaceAll(RegExp(r'\[.*?\]'), '').trim();
-         if (stripped.isNotEmpty) {
-           plainText += '$stripped\n';
-         }
+        // Add non-timestamped lines safely
+        final stripped = line.replaceAll(RegExp(r'\[.*?\]'), '').trim();
+        if (stripped.isNotEmpty) {
+          plainText += '$stripped\n';
+        }
       }
     }
-    
+
     return SongLyrics(
       text: plainText.trim(),
       isTamil: isTamil,
@@ -275,7 +298,11 @@ class SongLyrics {
         .replaceAll('&quot;', '"')
         .replaceAll('&#039;', "'")
         .trim();
-    return SongLyrics(text: clean, isTamil: isTamil, hasLyrics: clean.isNotEmpty);
+    return SongLyrics(
+      text: clean,
+      isTamil: isTamil,
+      hasLyrics: clean.isNotEmpty,
+    );
   }
 }
 
@@ -321,7 +348,9 @@ class MusicPlaylist {
         .map((s) => Song.fromJson(s as Map<String, dynamic>))
         .toList(),
     source: PlaylistSource.values[(j['source'] as num?)?.toInt() ?? 0],
-    createdAt: DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num?)?.toInt() ?? 0),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(
+      (j['createdAt'] as num?)?.toInt() ?? 0,
+    ),
     coverUrl: j['coverUrl']?.toString(),
   );
 }

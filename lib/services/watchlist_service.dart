@@ -185,8 +185,9 @@ class WatchlistService extends ChangeNotifier {
     int season = 0,
     int episode = 0,
   }) async {
-    final key =
-        episode == 0 ? '$mediaId-movie' : '$mediaId-s${season}e$episode';
+    final key = episode == 0
+        ? '$mediaId-movie'
+        : '$mediaId-s${season}e$episode';
     _mediaHistory[key] = DateTime.now().millisecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_mediaHistoryKey, jsonEncode(_mediaHistory));
@@ -194,8 +195,9 @@ class WatchlistService extends ChangeNotifier {
   }
 
   bool isMediaWatched(int mediaId, {int season = 0, int episode = 0}) {
-    final key =
-        episode == 0 ? '$mediaId-movie' : '$mediaId-s${season}e$episode';
+    final key = episode == 0
+        ? '$mediaId-movie'
+        : '$mediaId-s${season}e$episode';
     return _mediaHistory.containsKey(key);
   }
 
@@ -246,7 +248,8 @@ class WatchlistService extends ChangeNotifier {
   }
 
   Future<void> markMangaRead(int mangaId, String chapterId) async {
-    _mangaHistory['$mangaId-$chapterId'] = DateTime.now().millisecondsSinceEpoch;
+    _mangaHistory['$mangaId-$chapterId'] =
+        DateTime.now().millisecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_mangaHistoryKey, jsonEncode(_mangaHistory));
     notifyListeners();

@@ -25,9 +25,24 @@ class _MangaSearchScreenState extends State<MangaSearchScreen> {
   String? _error;
 
   static const _allGenres = [
-    'Action', 'Adventure', 'Comedy', 'Drama', 'Ecchi', 'Fantasy', 'Horror',
-    'Mahou Shoujo', 'Mecha', 'Music', 'Mystery', 'Psychological', 'Romance',
-    'Sci-Fi', 'Slice of Life', 'Sports', 'Supernatural', 'Thriller'
+    'Action',
+    'Adventure',
+    'Comedy',
+    'Drama',
+    'Ecchi',
+    'Fantasy',
+    'Horror',
+    'Mahou Shoujo',
+    'Mecha',
+    'Music',
+    'Mystery',
+    'Psychological',
+    'Romance',
+    'Sci-Fi',
+    'Slice of Life',
+    'Sports',
+    'Supernatural',
+    'Thriller',
   ];
 
   @override
@@ -62,9 +77,17 @@ class _MangaSearchScreenState extends State<MangaSearchScreen> {
     });
     try {
       final res = await searchManga(q, genres: _selectedGenres);
-      if (mounted) setState(() { _results = res; _loading = false; });
+      if (mounted)
+        setState(() {
+          _results = res;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -109,9 +132,19 @@ class _MangaSearchScreenState extends State<MangaSearchScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search_off_rounded, size: 64.sp, color: AppTheme.primary.withOpacity(0.3)),
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64.sp,
+                          color: AppTheme.primary.withOpacity(0.3),
+                        ),
                         SizedBox(height: 16.h),
-                        Text('No results found', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16.sp)),
+                        Text(
+                          'No results found',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16.sp,
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -124,7 +157,8 @@ class _MangaSearchScreenState extends State<MangaSearchScreen> {
                       mainAxisSpacing: 16.h,
                     ),
                     itemCount: _results!.length,
-                    itemBuilder: (c, i) => MangaCard(manga: _results![i], index: i),
+                    itemBuilder: (c, i) =>
+                        MangaCard(manga: _results![i], index: i),
                   ),
           ),
         ],
@@ -146,14 +180,25 @@ class _MangaSearchScreenState extends State<MangaSearchScreen> {
           return Padding(
             padding: EdgeInsets.only(right: 8.w),
             child: FilterChip(
-              label: Text(g, style: TextStyle(fontSize: 11.sp, color: selected ? Colors.white : AppTheme.textSecondary)),
+              label: Text(
+                g,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: selected ? Colors.white : AppTheme.textSecondary,
+                ),
+              ),
               selected: selected,
               onSelected: (_) => _toggleGenre(g),
               backgroundColor: AppTheme.darkCard,
               selectedColor: AppTheme.primary,
               checkmarkColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 4.w),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r), side: BorderSide(color: selected ? AppTheme.primary : AppTheme.darkBorder)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r),
+                side: BorderSide(
+                  color: selected ? AppTheme.primary : AppTheme.darkBorder,
+                ),
+              ),
             ),
           );
         },

@@ -35,24 +35,40 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final playlist = context.read<MusicPlaylistService>();
       final data = await music_api.getMusicHomeData(
         recentlyPlayed: playlist.recentlyPlayed,
       );
-      if (mounted) setState(() { _data = data; _loading = false; });
+      if (mounted)
+        setState(() {
+          _data = data;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = e.toString(); });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error = e.toString();
+        });
     }
   }
 
   void _playSong(Song song, List<Song> queue) {
     context.read<MusicPlayerService>().playPlaylist(
       queue.isNotEmpty ? queue : [song],
-      startIndex: queue.isNotEmpty ? queue.indexWhere((s) => s.id == song.id).clamp(0, queue.length - 1) : 0,
+      startIndex: queue.isNotEmpty
+          ? queue.indexWhere((s) => s.id == song.id).clamp(0, queue.length - 1)
+          : 0,
     );
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPlayerScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MusicPlayerScreen()),
+    );
   }
 
   @override
@@ -62,9 +78,12 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          if (_loading) _buildShimmer()
-          else if (_error != null) _buildError()
-          else ..._buildContent(),
+          if (_loading)
+            _buildShimmer()
+          else if (_error != null)
+            _buildError()
+          else
+            ..._buildContent(),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -116,7 +135,14 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(height: 18.h, width: 140.w, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+        Container(
+          height: 18.h,
+          width: 140.w,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
         SizedBox(height: 12.h),
         SizedBox(
           height: 160.h,
@@ -125,8 +151,12 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
             itemCount: 5,
             separatorBuilder: (_, __) => SizedBox(width: 12.w),
             itemBuilder: (_, __) => Container(
-              width: 130.w, height: 160.h,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              width: 130.w,
+              height: 160.h,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
@@ -139,9 +169,16 @@ class _MusicHomeScreenState extends State<MusicHomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.wifi_off_rounded, color: AppTheme.textSecondary, size: 48.sp),
+          Icon(
+            Icons.wifi_off_rounded,
+            color: AppTheme.textSecondary,
+            size: 48.sp,
+          ),
           SizedBox(height: 12.h),
-          Text('Could not load music', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp)),
+          Text(
+            'Could not load music',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp),
+          ),
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: _load,
@@ -300,7 +337,11 @@ class _SongCard extends StatelessWidget {
   final VoidCallback onTap;
   final Color accentColor;
 
-  const _SongCard({required this.song, required this.onTap, required this.accentColor});
+  const _SongCard({
+    required this.song,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -323,11 +364,19 @@ class _SongCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
                       color: AppTheme.darkCard,
-                      child: Icon(Icons.music_note_rounded, color: accentColor, size: 40.sp),
+                      child: Icon(
+                        Icons.music_note_rounded,
+                        color: accentColor,
+                        size: 40.sp,
+                      ),
                     ),
                     errorWidget: (_, __, ___) => Container(
                       color: AppTheme.darkCard,
-                      child: Icon(Icons.music_note_rounded, color: accentColor, size: 40.sp),
+                      child: Icon(
+                        Icons.music_note_rounded,
+                        color: accentColor,
+                        size: 40.sp,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -338,9 +387,18 @@ class _SongCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: accentColor,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: accentColor.withOpacity(0.5), blurRadius: 8)],
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.5),
+                            blurRadius: 8,
+                          ),
+                        ],
                       ),
-                      child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16.sp),
+                      child: Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 16.sp,
+                      ),
                     ),
                   ),
                 ],
@@ -351,7 +409,11 @@ class _SongCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             Text(
               song.artist,
@@ -385,7 +447,11 @@ class _AlbumSection extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Text(
               title,
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 16.sp, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           SizedBox(height: 12.h),
@@ -401,7 +467,9 @@ class _AlbumSection extends StatelessWidget {
                 return GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => MusicAlbumScreen(album: album)),
+                    MaterialPageRoute(
+                      builder: (_) => MusicAlbumScreen(album: album),
+                    ),
                   ),
                   child: SizedBox(
                     width: 130.w,
@@ -417,19 +485,42 @@ class _AlbumSection extends StatelessWidget {
                             fit: BoxFit.cover,
                             placeholder: (_, __) => Container(
                               color: AppTheme.darkCard,
-                              child: Icon(Icons.album_rounded, color: _musicSecondary, size: 40.sp),
+                              child: Icon(
+                                Icons.album_rounded,
+                                color: _musicSecondary,
+                                size: 40.sp,
+                              ),
                             ),
                             errorWidget: (_, __, ___) => Container(
                               color: AppTheme.darkCard,
-                              child: Icon(Icons.album_rounded, color: _musicSecondary, size: 40.sp),
+                              child: Icon(
+                                Icons.album_rounded,
+                                color: _musicSecondary,
+                                size: 40.sp,
+                              ),
                             ),
                           ),
                         ),
                         SizedBox(height: 6.h),
-                        Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppTheme.textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w600)),
-                        Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp)),
+                        Text(
+                          album.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          album.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11.sp,
+                          ),
+                        ),
                       ],
                     ),
                   ),

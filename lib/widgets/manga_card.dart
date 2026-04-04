@@ -63,7 +63,7 @@ class MangaCard extends StatelessWidget {
                 ),
               ],
             ),
-          ]
+          ],
         ],
       ),
     );

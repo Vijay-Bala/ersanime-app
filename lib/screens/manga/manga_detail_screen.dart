@@ -35,16 +35,31 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   Future<void> _load() async {
     try {
       final detail = await getMangaDetail(widget.manga.id);
-      if (mounted) setState(() { _manga = detail; _loading = false; });
+      if (mounted)
+        setState(() {
+          _manga = detail;
+          _loading = false;
+        });
     } catch (e, st) {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
 
     try {
       final chapters = await MangaService.fetchAvailableChapters(widget.manga);
-      if (mounted) setState(() { _chapters = chapters; _loadingChapters = false; });
+      if (mounted)
+        setState(() {
+          _chapters = chapters;
+          _loadingChapters = false;
+        });
     } catch (e, st) {
-      if (mounted) setState(() { _chapters = []; _loadingChapters = false; });
+      if (mounted)
+        setState(() {
+          _chapters = [];
+          _loadingChapters = false;
+        });
     }
   }
 
@@ -126,8 +141,9 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
-                                color: AppTheme.accentGreen.withOpacity(0.4),
-                                width: 1.5),
+                              color: AppTheme.accentGreen.withOpacity(0.4),
+                              width: 1.5,
+                            ),
                           ),
                           clipBehavior: Clip.hardEdge,
                           child: CachedNetworkImage(
@@ -143,9 +159,10 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                               Text(
                                 manga.title,
                                 style: TextStyle(
-                                    color: AppTheme.textPrimary,
-                                    fontSize: 17.sp,
-                                    fontWeight: FontWeight.w900),
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 17.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -155,23 +172,32 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                 runSpacing: 5.h,
                                 children: [
                                   if (manga.rating != null)
-                                    _Badge('★ ${manga.rating!.toStringAsFixed(1)}',
-                                        AppTheme.accentYellow),
+                                    _Badge(
+                                      '★ ${manga.rating!.toStringAsFixed(1)}',
+                                      AppTheme.accentYellow,
+                                    ),
                                   if (manga.format != null)
                                     _Badge(manga.format!, AppTheme.accentGreen),
                                   if (manga.status != null)
                                     _Badge(
-                                        manga.status!,
-                                        manga.status == 'Ongoing'
-                                            ? AppTheme.accentGreen
-                                            : AppTheme.accentCyan),
+                                      manga.status!,
+                                      manga.status == 'Ongoing'
+                                          ? AppTheme.accentGreen
+                                          : AppTheme.accentCyan,
+                                    ),
                                   if (manga.year != null)
-                                    _Badge('${manga.year}', AppTheme.textSecondary),
+                                    _Badge(
+                                      '${manga.year}',
+                                      AppTheme.textSecondary,
+                                    ),
                                 ],
                               ),
-                              if (watchlist.getMangaStatus(manga.id) != null) ...[
+                              if (watchlist.getMangaStatus(manga.id) !=
+                                  null) ...[
                                 SizedBox(height: 8.h),
-                                _StatusIndicator(status: watchlist.getMangaStatus(manga.id)!),
+                                _StatusIndicator(
+                                  status: watchlist.getMangaStatus(manga.id)!,
+                                ),
                               ],
                             ],
                           ),
@@ -194,7 +220,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r)),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
                           ),
                         ),
                       ),
@@ -205,12 +232,15 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (manga.description != null) ...[
-                          Text('SYNOPSIS',
-                              style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.0)),
+                          Text(
+                            'SYNOPSIS',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
                           SizedBox(height: 6.h),
                           ExpandableText(text: manga.description!),
                           SizedBox(height: 24.h),
@@ -220,11 +250,14 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         if (!_loading &&
                             manga.recommendations != null &&
                             manga.recommendations!.isNotEmpty) ...[
-                          Text('Recommended',
-                              style: TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold)),
+                          Text(
+                            'Recommended',
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           SizedBox(height: 12.h),
                           SizedBox(
                             height: 220.h,
@@ -236,7 +269,9 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                 child: Padding(
                                   padding: EdgeInsets.only(right: 8.w),
                                   child: MangaCard(
-                                      manga: manga.recommendations![i], index: i),
+                                    manga: manga.recommendations![i],
+                                    index: i,
+                                  ),
                                 ),
                               ),
                             ),
@@ -272,7 +307,10 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Center(
-          child: Text('No chapters available', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp)),
+          child: Text(
+            'No chapters available',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp),
+          ),
         ),
       );
     }
@@ -289,7 +327,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           children: [
             Text(
               'Chapters ($totalCount)',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             IconButton(
               icon: Icon(Icons.sort, color: AppTheme.textSecondary),
@@ -306,14 +348,33 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: displayCount,
-          separatorBuilder: (c, i) => Divider(color: AppTheme.darkBorder, height: 1),
+          separatorBuilder: (c, i) =>
+              Divider(color: AppTheme.darkBorder, height: 1),
           itemBuilder: (c, i) {
             final chap = _chapters![i];
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Chapter ${chap.chapterNumber}', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
-              subtitle: Text(chap.title, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
-              trailing: Icon(Icons.menu_book, color: AppTheme.primary, size: 20.sp),
+              title: Text(
+                'Chapter ${chap.chapterNumber}',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                chap.title,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Icon(
+                Icons.menu_book,
+                color: AppTheme.primary,
+                size: 20.sp,
+              ),
               onTap: () => _readChapter(chap),
             );
           },
@@ -380,7 +441,11 @@ class _StatusPickerButton extends StatelessWidget {
     );
   }
 
-  void _showPicker(BuildContext context, WatchlistService watchlist, WatchStatus? current) {
+  void _showPicker(
+    BuildContext context,
+    WatchlistService watchlist,
+    WatchStatus? current,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.darkCard,
@@ -392,13 +457,30 @@ class _StatusPickerButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(height: 16.h),
-            Text('Add to List', style: TextStyle(color: AppTheme.textPrimary, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+            Text(
+              'Add to List',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             SizedBox(height: 8.h),
             ...WatchStatus.values.map(
               (s) => ListTile(
                 leading: Text(s.emoji, style: TextStyle(fontSize: 20.sp)),
-                title: Text(s.label, style: TextStyle(color: s == current ? s.color : AppTheme.textPrimary, fontWeight: s == current ? FontWeight.w800 : FontWeight.w500)),
-                trailing: s == current ? Icon(Icons.check_circle_rounded, color: s.color) : null,
+                title: Text(
+                  s.label,
+                  style: TextStyle(
+                    color: s == current ? s.color : AppTheme.textPrimary,
+                    fontWeight: s == current
+                        ? FontWeight.w800
+                        : FontWeight.w500,
+                  ),
+                ),
+                trailing: s == current
+                    ? Icon(Icons.check_circle_rounded, color: s.color)
+                    : null,
                 onTap: () {
                   watchlist.setMangaStatus(mangaId, s == current ? null : s);
                   Navigator.pop(context);
@@ -407,8 +489,14 @@ class _StatusPickerButton extends StatelessWidget {
             ),
             if (current != null)
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.accentPink),
-                title: const Text('Remove from list', style: TextStyle(color: AppTheme.accentPink)),
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppTheme.accentPink,
+                ),
+                title: const Text(
+                  'Remove from list',
+                  style: TextStyle(color: AppTheme.accentPink),
+                ),
                 onTap: () {
                   watchlist.removeMangaFromList(mangaId);
                   Navigator.pop(context);
@@ -436,7 +524,11 @@ class _StatusIndicator extends StatelessWidget {
       ),
       child: Text(
         '${status.emoji} ${status.label}',
-        style: TextStyle(color: status.color, fontSize: 10.sp, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: status.color,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -454,7 +546,14 @@ class _Badge extends StatelessWidget {
       borderRadius: BorderRadius.circular(6.r),
       border: Border.all(color: color.withOpacity(0.4)),
     ),
-    child: Text(text, style: TextStyle(color: color, fontSize: 9.sp, fontWeight: FontWeight.w700)),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: color,
+        fontSize: 9.sp,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
   );
 }
 
@@ -477,10 +576,21 @@ class _ExpandableTextState extends State<ExpandableText> {
           widget.text,
           maxLines: _expanded ? null : 4,
           overflow: _expanded ? null : TextOverflow.ellipsis,
-          style: TextStyle(color: const Color(0xFFAAAACC), fontSize: 12.sp, height: 1.7),
+          style: TextStyle(
+            color: const Color(0xFFAAAACC),
+            fontSize: 12.sp,
+            height: 1.7,
+          ),
         ),
         SizedBox(height: 4.h),
-        Text(_expanded ? 'Show less ▲' : 'Read more ▼', style: TextStyle(color: AppTheme.accentGreen, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+        Text(
+          _expanded ? 'Show less ▲' : 'Read more ▼',
+          style: TextStyle(
+            color: AppTheme.accentGreen,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     ),
   );

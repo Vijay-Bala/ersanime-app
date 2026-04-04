@@ -47,6 +47,10 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+		</array>
 
 		<!-- iOS equivalent of Android's networkSecurityConfig + usesCleartextTraffic.
 		     Allows WKWebView (used by flutter_inappwebview) to load embed streaming

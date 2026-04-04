@@ -22,10 +22,7 @@ const _headers = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /// Safe GET with 12-second timeout and automatic retry
-Future<Map<String, dynamic>> _get(
-  String url, {
-  int retries = 2,
-}) async {
+Future<Map<String, dynamic>> _get(String url, {int retries = 2}) async {
   Exception? lastErr;
   for (int attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -38,7 +35,9 @@ Future<Map<String, dynamic>> _get(
       if (res.statusCode == 200) {
         final body = res.body;
         // JioSaavn sometimes wraps in a callback or returns plain JSON
-        final clean = body.startsWith('/*') ? body.substring(body.indexOf('*/') + 2).trim() : body;
+        final clean = body.startsWith('/*')
+            ? body.substring(body.indexOf('*/') + 2).trim()
+            : body;
         return jsonDecode(clean) as Map<String, dynamic>;
       }
     } catch (e) {
@@ -61,7 +60,9 @@ Future<dynamic> _getRaw(String url, {int retries = 2}) async {
           .timeout(const Duration(seconds: 12));
       if (res.statusCode == 200) {
         final body = res.body;
-        final clean = body.startsWith('/*') ? body.substring(body.indexOf('*/') + 2).trim() : body;
+        final clean = body.startsWith('/*')
+            ? body.substring(body.indexOf('*/') + 2).trim()
+            : body;
         return jsonDecode(clean);
       }
     } catch (e) {
@@ -81,7 +82,8 @@ List<Song> _parseSongsList(dynamic data) {
   }
   if (data is Map<String, dynamic>) {
     // Some endpoints wrap: { "results": [...] }
-    final results = data['results'] ?? data['data'] ?? data['songs'] ?? data['song'];
+    final results =
+        data['results'] ?? data['data'] ?? data['songs'] ?? data['song'];
     if (results is List) {
       return _parseSongsList(results);
     }
@@ -151,15 +153,17 @@ Future<List<MusicArtist>> searchArtists(String query) async {
     if (data is List) list = data;
     return list
         .whereType<Map<String, dynamic>>()
-        .map((m) => MusicArtist(
-              id: m['id']?.toString() ?? '',
-              name: m['name']?.toString() ?? '',
-              imageUrl: (m['image']?.toString() ?? '')
-                  .replaceAll('http://', 'https://')
-                  .trim(),
-              topSongs: const [],
-              albums: const [],
-            ))
+        .map(
+          (m) => MusicArtist(
+            id: m['id']?.toString() ?? '',
+            name: m['name']?.toString() ?? '',
+            imageUrl: (m['image']?.toString() ?? '')
+                .replaceAll('http://', 'https://')
+                .trim(),
+            topSongs: const [],
+            albums: const [],
+          ),
+        )
         .where((a) => a.id.isNotEmpty)
         .toList();
   } catch (_) {
@@ -178,7 +182,8 @@ Future<List<Song>> searchGenrePlaylistSongs(String genre) async {
     final data = await _getRaw(url);
     final results = data['results'];
     if (results is List && results.isNotEmpty) {
-      final listId = results[0]['listid']?.toString() ?? results[0]['id']?.toString();
+      final listId =
+          results[0]['listid']?.toString() ?? results[0]['id']?.toString();
       if (listId != null) {
         return getJioSaavnPlaylistSongs(listId);
       }
@@ -227,13 +232,24 @@ Future<SongLyrics> getLyrics(Song song) async {
         if (sData.isNotEmpty) {
           // Find best match with synced lyrics
           final best = sData.firstWhere(
-              (e) => e['syncedLyrics'] != null && e['syncedLyrics'].toString().isNotEmpty,
-              orElse: () => sData.first);
+            (e) =>
+                e['syncedLyrics'] != null &&
+                e['syncedLyrics'].toString().isNotEmpty,
+            orElse: () => sData.first,
+          );
 
-          if (best['syncedLyrics'] != null && best['syncedLyrics'].toString().isNotEmpty) {
-            return SongLyrics.fromLrc(best['syncedLyrics'].toString(), isTamil: song.isTamil);
-          } else if (best['plainLyrics'] != null && best['plainLyrics'].toString().isNotEmpty) {
-            return SongLyrics.plain(best['plainLyrics'].toString(), isTamil: song.isTamil);
+          if (best['syncedLyrics'] != null &&
+              best['syncedLyrics'].toString().isNotEmpty) {
+            return SongLyrics.fromLrc(
+              best['syncedLyrics'].toString(),
+              isTamil: song.isTamil,
+            );
+          } else if (best['plainLyrics'] != null &&
+              best['plainLyrics'].toString().isNotEmpty) {
+            return SongLyrics.plain(
+              best['plainLyrics'].toString(),
+              isTamil: song.isTamil,
+            );
           }
         }
       }
@@ -243,7 +259,8 @@ Future<SongLyrics> getLyrics(Song song) async {
   // 2. Fallback to JioSaavn native
   if (song.lyricsId != null && song.lyricsId!.isNotEmpty) {
     try {
-      final url = '$_base?__call=lyrics.getLyrics&lyrics_id=${song.lyricsId}&ctx=wap6dot0&api_version=4&_format=json&_marker=0';
+      final url =
+          '$_base?__call=lyrics.getLyrics&lyrics_id=${song.lyricsId}&ctx=wap6dot0&api_version=4&_format=json&_marker=0';
       final data = await _get(url);
       final lyrics = SongLyrics.fromSaavn(data, isTamil: song.isTamil);
       if (lyrics.hasLyrics) return lyrics;
@@ -268,9 +285,10 @@ Future<MusicHomeData> getMusicHomeData({
   ]);
 
   return MusicHomeData(
-    trending: [...results[0] as List<Song>, ...results[1] as List<Song>]
-        .take(20)
-        .toList(),
+    trending: [
+      ...results[0] as List<Song>,
+      ...results[1] as List<Song>,
+    ].take(20).toList(),
     tamilHits: results[0] as List<Song>,
     hindiFeatured: results[1] as List<Song>,
     englishTop: results[2] as List<Song>,
@@ -293,7 +311,11 @@ Future<List<MusicAlbum>> _fetchNewReleases() async {
     List<dynamic> list = [];
     if (data is Map) list = data['results'] as List? ?? [];
     if (data is List) list = data;
-    return list.whereType<Map<String, dynamic>>().map(MusicAlbum.fromSaavn).take(10).toList();
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(MusicAlbum.fromSaavn)
+        .take(10)
+        .toList();
   } catch (_) {
     return [];
   }
@@ -331,7 +353,8 @@ Future<String> resolveStreamUrl(Song song) async {
 
   // Re-fetch song detail to get fresh URLs
   final fresh = await getSongDetail(song.id);
-  if (fresh != null && fresh.downloadUrls.isNotEmpty) return fresh.bestStreamUrl;
+  if (fresh != null && fresh.downloadUrls.isNotEmpty)
+    return fresh.bestStreamUrl;
 
   return '';
 }
@@ -360,14 +383,18 @@ Future<List<Song>> getSongsByIds(List<String> ids) async {
     if (data['songs'] is List) {
       for (final val in data['songs']) {
         if (val is Map<String, dynamic>) {
-          try { songs.add(Song.fromSaavnSong(val)); } catch (_) {}
+          try {
+            songs.add(Song.fromSaavnSong(val));
+          } catch (_) {}
         }
       }
     } else {
       for (final key in data.keys) {
         final val = data[key];
         if (val is Map<String, dynamic>) {
-          try { songs.add(Song.fromSaavnSong(val)); } catch (_) {}
+          try {
+            songs.add(Song.fromSaavnSong(val));
+          } catch (_) {}
         }
       }
     }

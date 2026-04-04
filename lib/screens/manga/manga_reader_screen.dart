@@ -29,16 +29,39 @@ const _kMangaAllowedHosts = {
 };
 
 const _kMangaAdHosts = {
-  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
-  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
-  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
-  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
-  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
-  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
-  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
-  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
-  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
-  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
+  'adexchangeclear.com',
+  'usrpubtrk.com',
+  'acscdn.com',
+  'ieenhijxbigyt.space',
+  'cloudnestra.com',
+  'vsembed.ru',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googletagmanager.com',
+  'googletagservices.com',
+  'google-analytics.com',
+  'adservice.google.com',
+  'amazon-adsystem.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'popcash.net',
+  'propellerads.com',
+  'adsterra.com',
+  'trafficjunky.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficfactory.biz',
+  'hilltopads.net',
+  'ero-advertising.com',
+  'adnxs.com',
+  'advertising.com',
+  'criteo.com',
+  'rubiconproject.com',
+  'openx.net',
+  'pubmatic.com',
+  'smartadserver.com',
+  'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -392,22 +415,25 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.broken_image_rounded,
-                  color: Colors.grey.shade600, size: 52.sp),
+              Icon(
+                Icons.broken_image_rounded,
+                color: Colors.grey.shade600,
+                size: 52.sp,
+              ),
               SizedBox(height: 16.h),
               Text(
                 'Could not load chapter from $source',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600),
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               Text(
                 'The source may be temporarily unavailable.\nTry again or switch to a different chapter.',
-                style:
-                    TextStyle(color: Colors.grey.shade400, fontSize: 12.sp),
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12.sp),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 20.h),
@@ -419,7 +445,8 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r)),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
                 ),
               ),
             ],
@@ -449,7 +476,8 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
     if (_currentChapter.id.startsWith('mangapill|')) {
       headers = {
         'Referer': 'https://mangapill.com/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       };
     } else if (_currentChapter.id.startsWith('mangadex|')) {
       headers = {'Referer': 'https://mangadex.org/'};
@@ -496,19 +524,25 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline,
-                  color: AppTheme.accentPink, size: 32.sp),
+              Icon(
+                Icons.error_outline,
+                color: AppTheme.accentPink,
+                size: 32.sp,
+              ),
               SizedBox(height: 8.h),
-              Text('Image failed to load',
-                  style:
-                      TextStyle(color: Colors.white70, fontSize: 12.sp)),
+              Text(
+                'Image failed to load',
+                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+              ),
               if (_anyZoomed)
-                Text('Try resetting zoom/pan',
-                    style: TextStyle(
-                        color: Colors.white38, fontSize: 10.sp)),
+                Text(
+                  'Try resetting zoom/pan',
+                  style: TextStyle(color: Colors.white38, fontSize: 10.sp),
+                ),
               TextButton(
-                  onPressed: _fetchPages,
-                  child: const Text('Retry all')),
+                onPressed: _fetchPages,
+                child: const Text('Retry all'),
+              ),
             ],
           ),
         ),
@@ -548,9 +582,10 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                   Text(
                     widget.mangaTitle,
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -558,31 +593,32 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                     children: [
                       Text(
                         'Chapter ${_currentChapter.chapterNumber}',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 11.sp),
+                        style: TextStyle(color: Colors.grey, fontSize: 11.sp),
                       ),
                       if (_currentChapter.group != null) ...[
                         SizedBox(width: 6.w),
                         Container(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 6.w, vertical: 1.h),
+                            horizontal: 6.w,
+                            vertical: 1.h,
+                          ),
                           decoration: BoxDecoration(
                             color: _sourceColor(
-                                    _currentChapter.group!)
-                                .withOpacity(0.2),
+                              _currentChapter.group!,
+                            ).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(4.r),
                             border: Border.all(
-                                color: _sourceColor(
-                                    _currentChapter.group!),
-                                width: 0.8),
+                              color: _sourceColor(_currentChapter.group!),
+                              width: 0.8,
+                            ),
                           ),
                           child: Text(
                             _currentChapter.group!,
                             style: TextStyle(
-                                color: _sourceColor(
-                                    _currentChapter.group!),
-                                fontSize: 9.sp,
-                                fontWeight: FontWeight.w600),
+                              color: _sourceColor(_currentChapter.group!),
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -592,15 +628,18 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
               ),
             ),
             IconButton(
-              icon: Icon(Icons.zoom_out_map,
-                  color: _anyZoomed ? Colors.white : Colors.white24),
+              icon: Icon(
+                Icons.zoom_out_map,
+                color: _anyZoomed ? Colors.white : Colors.white24,
+              ),
               onPressed: _anyZoomed ? _resetAllZoom : null,
               tooltip: 'Reset Zoom & Pan',
             ),
             IconButton(
               icon: Icon(
-                  _isVertical ? Icons.swap_vert : Icons.swap_horiz,
-                  color: Colors.white),
+                _isVertical ? Icons.swap_vert : Icons.swap_horiz,
+                color: Colors.white,
+              ),
               tooltip: 'Toggle Scroll Direction',
               onPressed: _toggleDirection,
             ),
@@ -661,8 +700,7 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
         if (!didPop && _isFullscreen) _toggleFullscreen();
       },
       child: Scaffold(
-        backgroundColor:
-            _isFullscreen ? Colors.black : AppTheme.darkBg,
+        backgroundColor: _isFullscreen ? Colors.black : AppTheme.darkBg,
         body: _isFullscreen
             ? _buildExternalFullscreen()
             : _buildExternalPortrait(),
@@ -694,8 +732,11 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppTheme.textPrimary, size: 18.sp),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.textPrimary,
+              size: 18.sp,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
@@ -706,28 +747,32 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                   widget.mangaTitle,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700),
+                    color: AppTheme.textPrimary,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(
                   'Chapter ${_currentChapter.chapterNumber} · External',
-                  style: TextStyle(
-                      color: AppTheme.accentCyan, fontSize: 10.sp),
+                  style: TextStyle(color: AppTheme.accentCyan, fontSize: 10.sp),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.skip_previous_rounded,
-                color: hasPrev ? Colors.white : Colors.white30,
-                size: 20.sp),
+            icon: Icon(
+              Icons.skip_previous_rounded,
+              color: hasPrev ? Colors.white : Colors.white30,
+              size: 20.sp,
+            ),
             onPressed: hasPrev ? _prevChapter : null,
           ),
           IconButton(
-            icon: Icon(Icons.skip_next_rounded,
-                color: hasNext ? Colors.white : Colors.white30,
-                size: 20.sp),
+            icon: Icon(
+              Icons.skip_next_rounded,
+              color: hasNext ? Colors.white : Colors.white30,
+              size: 20.sp,
+            ),
             onPressed: hasNext ? _nextChapter : null,
           ),
         ],
@@ -751,15 +796,17 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.open_in_browser_rounded,
-              color: AppTheme.primary, size: 18.sp),
+          Icon(
+            Icons.open_in_browser_rounded,
+            color: AppTheme.primary,
+            size: 18.sp,
+          ),
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
               'This chapter is exclusively hosted by the publisher. '
               'Reading in a protected, ad-free view.',
-              style: TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 10.sp),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 10.sp),
             ),
           ),
         ],
@@ -792,14 +839,17 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                   Text(
                     'Loading publisher reader...',
                     style: TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 12.sp),
+                      color: AppTheme.textSecondary,
+                      fontSize: 12.sp,
+                    ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     'Ads & popups are being blocked',
                     style: TextStyle(
-                        color: AppTheme.accentCyan.withOpacity(0.7),
-                        fontSize: 10.sp),
+                      color: AppTheme.accentCyan.withOpacity(0.7),
+                      fontSize: 10.sp,
+                    ),
                   ),
                 ],
               ),
@@ -812,8 +862,7 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
             child: GestureDetector(
               onTap: _toggleFullscreen,
               child: Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(8.r),
@@ -822,14 +871,20 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.fullscreen_rounded,
-                        color: Colors.white, size: 16.sp),
+                    Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 16.sp,
+                    ),
                     SizedBox(width: 4.w),
-                    Text('Fullscreen',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w600)),
+                    Text(
+                      'Fullscreen',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -846,15 +901,15 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shield_rounded,
-              color: AppTheme.accentGreen, size: 14.sp),
+          Icon(Icons.shield_rounded, color: AppTheme.accentGreen, size: 14.sp),
           SizedBox(width: 6.w),
           Text(
             'Ad-blocked · No popups · No redirections',
             style: TextStyle(
-                color: AppTheme.accentGreen.withOpacity(0.8),
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w500),
+              color: AppTheme.accentGreen.withOpacity(0.8),
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -895,7 +950,9 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                       onTap: _toggleFullscreen,
                       behavior: HitTestBehavior.opaque,
                       child: _fsBtn(
-                          Icons.fullscreen_exit_rounded, 'Exit Fullscreen'),
+                        Icons.fullscreen_exit_rounded,
+                        'Exit Fullscreen',
+                      ),
                     ),
                   ),
                   Positioned(
@@ -921,8 +978,11 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
                     color: Colors.black38,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: Icon(Icons.touch_app_rounded,
-                      color: Colors.white38, size: 16.sp),
+                  child: Icon(
+                    Icons.touch_app_rounded,
+                    color: Colors.white38,
+                    size: 16.sp,
+                  ),
                 ),
               ),
             ),
@@ -944,11 +1004,14 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
         children: [
           Icon(icon, color: Colors.white, size: 18.sp),
           SizedBox(width: 6.w),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -968,9 +1031,10 @@ class _MangaReaderScreenState extends State<MangaReaderScreen> {
           Text(
             widget.mangaTitle,
             style: TextStyle(
-                color: Colors.white,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
           Text(

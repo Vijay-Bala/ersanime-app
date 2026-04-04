@@ -33,7 +33,11 @@ class _MusicAlbumScreenState extends State<MusicAlbumScreen> {
 
   Future<void> _load() async {
     final full = await music_api.getAlbumDetail(widget.album.id);
-    if (mounted) setState(() { _fullAlbum = full ?? widget.album; _loading = false; });
+    if (mounted)
+      setState(() {
+        _fullAlbum = full ?? widget.album;
+        _loading = false;
+      });
   }
 
   @override
@@ -44,17 +48,27 @@ class _MusicAlbumScreenState extends State<MusicAlbumScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [_buildHeader(album)],
         body: _loading
-            ? const Center(child: CircularProgressIndicator(color: _musicPrimary))
+            ? const Center(
+                child: CircularProgressIndicator(color: _musicPrimary),
+              )
             : album.songs.isEmpty
-                ? Center(child: Text('No songs', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp)))
-                : ListView.builder(
-                    padding: EdgeInsets.only(bottom: 100.h),
-                    itemCount: album.songs.length,
-                    itemBuilder: (_, i) => SongListTile(
-                      song: album.songs[i],
-                      onTap: () => _play(album.songs, i),
-                    ).animate().fadeIn(delay: Duration(milliseconds: i * 30)),
+            ? Center(
+                child: Text(
+                  'No songs',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14.sp,
                   ),
+                ),
+              )
+            : ListView.builder(
+                padding: EdgeInsets.only(bottom: 100.h),
+                itemCount: album.songs.length,
+                itemBuilder: (_, i) => SongListTile(
+                  song: album.songs[i],
+                  onTap: () => _play(album.songs, i),
+                ).animate().fadeIn(delay: Duration(milliseconds: i * 30)),
+              ),
       ),
     );
   }
@@ -87,32 +101,61 @@ class _MusicAlbumScreenState extends State<MusicAlbumScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(album.name, style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.w900), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    album.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   SizedBox(height: 4.h),
-                  Text('${album.artist} • ${album.year} • ${album.songs.length} songs',
-                    style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
+                  Text(
+                    '${album.artist} • ${album.year} • ${album.songs.length} songs',
+                    style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                  ),
                   SizedBox(height: 12.h),
                   Row(
                     children: [
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _musicPrimary,
-                          side: const BorderSide(color: _musicPrimary, width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          side: const BorderSide(
+                            color: _musicPrimary,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                         icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text('Play', style: TextStyle(fontWeight: FontWeight.w700)),
-                        onPressed: album.songs.isEmpty ? null : () => _play(album.songs, 0),
+                        label: const Text(
+                          'Play',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        onPressed: album.songs.isEmpty
+                            ? null
+                            : () => _play(album.songs, 0),
                       ),
                       SizedBox(width: 12.w),
                       OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
                         icon: const Icon(Icons.shuffle_rounded),
                         label: const Text('Shuffle'),
-                        onPressed: album.songs.isEmpty ? null : () {
-                          final s = [...album.songs]..shuffle();
-                          _play(s, 0);
-                        },
+                        onPressed: album.songs.isEmpty
+                            ? null
+                            : () {
+                                final s = [...album.songs]..shuffle();
+                                _play(s, 0);
+                              },
                       ),
                     ],
                   ),
@@ -127,6 +170,9 @@ class _MusicAlbumScreenState extends State<MusicAlbumScreen> {
 
   void _play(List<Song> songs, int index) {
     context.read<MusicPlayerService>().playPlaylist(songs, startIndex: index);
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPlayerScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MusicPlayerScreen()),
+    );
   }
 }

@@ -95,8 +95,12 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
       PageRouteBuilder(
         pageBuilder: (_, a, _) => MediaPlayerScreen(
           item: _item!,
-          embedUrls: getTvEmbedUrls(_item!.id, _selectedSeason, ep.number,
-              dubbed: dubbed),
+          embedUrls: getTvEmbedUrls(
+            _item!.id,
+            _selectedSeason,
+            ep.number,
+            dubbed: dubbed,
+          ),
           season: _selectedSeason,
           episode: ep,
           allEpisodes: _episodes,
@@ -273,9 +277,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                                               ),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(
-                                                  10.r,
-                                                ),
+                                                    BorderRadius.circular(10.r),
                                               ),
                                             ),
                                           ),
@@ -298,11 +300,10 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                                               ),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(
-                                                  10.r,
-                                                ),
+                                                    BorderRadius.circular(10.r),
                                                 side: BorderSide(
-                                                    color: AppTheme.darkBorder),
+                                                  color: AppTheme.darkBorder,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -558,7 +559,11 @@ class _EpisodeList extends StatelessWidget {
       itemCount: episodes.length,
       itemBuilder: (_, i) {
         final ep = episodes[i];
-        final watched = watchlist.isMediaWatched(itemId, season: season, episode: ep.number);
+        final watched = watchlist.isMediaWatched(
+          itemId,
+          season: season,
+          episode: ep.number,
+        );
         return GestureDetector(
           onTap: () => _showAudioSheet(context, ep),
           child: Container(

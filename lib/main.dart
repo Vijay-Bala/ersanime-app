@@ -144,22 +144,34 @@ class _MainNavState extends State<MainNav> {
     final isMusic = mode == AppMode.music;
 
     int currentIndex;
-    if (isAnime) currentIndex = _animeIndex;
-    else if (isManga) currentIndex = _mangaIndex;
-    else if (isMusic) currentIndex = _musicIndex;
-    else currentIndex = _moviesIndex;
+    if (isAnime)
+      currentIndex = _animeIndex;
+    else if (isManga)
+      currentIndex = _mangaIndex;
+    else if (isMusic)
+      currentIndex = _musicIndex;
+    else
+      currentIndex = _moviesIndex;
 
     Color activeColor;
-    if (isAnime) activeColor = AppTheme.primary;
-    else if (isManga) activeColor = AppTheme.accentGreen;
-    else if (isMusic) activeColor = const Color(0xFFFF1493);
-    else activeColor = AppTheme.accentOrange;
+    if (isAnime)
+      activeColor = AppTheme.primary;
+    else if (isManga)
+      activeColor = AppTheme.accentGreen;
+    else if (isMusic)
+      activeColor = const Color(0xFFFF1493);
+    else
+      activeColor = AppTheme.accentOrange;
 
     Widget body;
-    if (isAnime) body = IndexedStack(index: _animeIndex, children: _animeScreens);
-    else if (isManga) body = IndexedStack(index: _mangaIndex, children: _mangaScreens);
-    else if (isMusic) body = IndexedStack(index: _musicIndex, children: _musicScreens);
-    else body = IndexedStack(index: _moviesIndex, children: _moviesScreens);
+    if (isAnime)
+      body = IndexedStack(index: _animeIndex, children: _animeScreens);
+    else if (isManga)
+      body = IndexedStack(index: _mangaIndex, children: _mangaScreens);
+    else if (isMusic)
+      body = IndexedStack(index: _musicIndex, children: _musicScreens);
+    else
+      body = IndexedStack(index: _moviesIndex, children: _moviesScreens);
 
     return Scaffold(
       body: body,
@@ -171,17 +183,23 @@ class _MainNavState extends State<MainNav> {
           // Bottom navigation
           Container(
             decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppTheme.darkBorder, width: 1)),
+              border: Border(
+                top: BorderSide(color: AppTheme.darkBorder, width: 1),
+              ),
             ),
             child: BottomNavigationBar(
               currentIndex: currentIndex,
               selectedItemColor: activeColor,
               unselectedItemColor: AppTheme.textSecondary,
               onTap: (i) => setState(() {
-                if (isAnime) _animeIndex = i;
-                else if (isManga) _mangaIndex = i;
-                else if (isMusic) _musicIndex = i;
-                else _moviesIndex = i;
+                if (isAnime)
+                  _animeIndex = i;
+                else if (isManga)
+                  _mangaIndex = i;
+                else if (isMusic)
+                  _musicIndex = i;
+                else
+                  _moviesIndex = i;
               }),
               items: const [
                 BottomNavigationBarItem(
@@ -218,16 +236,24 @@ class ModeSwitcherTitle extends StatelessWidget {
     final isMusic = mode == AppMode.music;
 
     List<Color> gradColors;
-    if (isAnime) gradColors = [AppTheme.primary, AppTheme.accentCyan];
-    else if (isManga) gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
-    else if (isMusic) gradColors = [const Color(0xFFFF1493), const Color(0xFF9B00FF)];
-    else gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
+    if (isAnime)
+      gradColors = [AppTheme.primary, AppTheme.accentCyan];
+    else if (isManga)
+      gradColors = [AppTheme.accentGreen, AppTheme.accentCyan];
+    else if (isMusic)
+      gradColors = [const Color(0xFFFF1493), const Color(0xFF9B00FF)];
+    else
+      gradColors = [AppTheme.accentOrange, AppTheme.accentPink];
 
     String label;
-    if (isAnime) label = 'ERSA-Anime';
-    else if (isManga) label = 'ERSA-Manga';
-    else if (isMusic) label = 'ERSA-Music';
-    else label = 'ERSA-Movies';
+    if (isAnime)
+      label = 'ERSA-Anime';
+    else if (isManga)
+      label = 'ERSA-Manga';
+    else if (isMusic)
+      label = 'ERSA-Music';
+    else
+      label = 'ERSA-Movies';
 
     return GestureDetector(
       onTap: () => _showDropdown(context, modeNotifier),

@@ -13,7 +13,8 @@ import 'music_service.dart' as music;
 // Registered as a free Spotify Developer app — standard open-source practice.
 // Scope: none (client credentials, public data only)
 const _spotifyClientId = 'YOUR_SPOTIFY_CLIENT_ID'; // Replace at build time
-const _spotifyClientSecret = 'YOUR_SPOTIFY_CLIENT_SECRET'; // Replace at build time
+const _spotifyClientSecret =
+    'YOUR_SPOTIFY_CLIENT_SECRET'; // Replace at build time
 
 // ─── Import Result ─────────────────────────────────────────────────────────────
 class ImportResult {
@@ -46,7 +47,8 @@ class ImportResult {
 }
 
 // ─── Progress Callback ─────────────────────────────────────────────────────────
-typedef ImportProgressCallback = void Function(int current, int total, String songTitle);
+typedef ImportProgressCallback =
+    void Function(int current, int total, String songTitle);
 
 // ─── Spotify Import ─────────────────────────────────────────────────────────────
 
@@ -59,17 +61,24 @@ Future<ImportResult> importFromSpotify(
   try {
     final playlistId = _extractSpotifyPlaylistId(url);
     if (playlistId == null) {
-      return ImportResult.failed('Invalid Spotify playlist URL. Please paste the full link.');
+      return ImportResult.failed(
+        'Invalid Spotify playlist URL. Please paste the full link.',
+      );
     }
 
     // Step 1: Get Spotify access token (client credentials — no user login)
     final token = await _getSpotifyToken();
-    if (token == null) return ImportResult.failed('Could not connect to Spotify. Please try again.');
+    if (token == null)
+      return ImportResult.failed(
+        'Could not connect to Spotify. Please try again.',
+      );
 
     // Step 2: Fetch playlist metadata + tracks (handles pagination)
     final tracks = await _fetchSpotifyTracks(playlistId, token);
     if (tracks.isEmpty) {
-      return ImportResult.failed('Could not read playlist. Make sure it is set to Public.');
+      return ImportResult.failed(
+        'Could not read playlist. Make sure it is set to Public.',
+      );
     }
 
     final playlistName = tracks['name'] as String? ?? 'Spotify Playlist';
@@ -95,7 +104,8 @@ Future<ImportResult> importFromSpotify(
       }
 
       // Small delay to be respectful
-      if (i % 5 == 0 && i != 0) await Future.delayed(const Duration(milliseconds: 300));
+      if (i % 5 == 0 && i != 0)
+        await Future.delayed(const Duration(milliseconds: 300));
     }
 
     final id = 'spotify_$playlistId';
@@ -115,7 +125,9 @@ Future<ImportResult> importFromSpotify(
       notFoundTitles: notFound,
     );
   } catch (e) {
-    return ImportResult.failed('Import failed: ${e.toString().split('\n').first}');
+    return ImportResult.failed(
+      'Import failed: ${e.toString().split('\n').first}',
+    );
   }
 }
 
@@ -129,15 +141,19 @@ String? _extractSpotifyPlaylistId(String url) {
 
 Future<String?> _getSpotifyToken() async {
   try {
-    final credentials = base64Encode(utf8.encode('$_spotifyClientId:$_spotifyClientSecret'));
-    final res = await http.post(
-      Uri.parse('https://accounts.spotify.com/api/token'),
-      headers: {
-        'Authorization': 'Basic $credentials',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-    ).timeout(const Duration(seconds: 10));
+    final credentials = base64Encode(
+      utf8.encode('$_spotifyClientId:$_spotifyClientSecret'),
+    );
+    final res = await http
+        .post(
+          Uri.parse('https://accounts.spotify.com/api/token'),
+          headers: {
+            'Authorization': 'Basic $credentials',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'grant_type=client_credentials',
+        )
+        .timeout(const Duration(seconds: 10));
 
     if (res.statusCode == 200) {
       final j = jsonDecode(res.body) as Map<String, dynamic>;
@@ -147,18 +163,26 @@ Future<String?> _getSpotifyToken() async {
   return null;
 }
 
-Future<Map<String, dynamic>> _fetchSpotifyTracks(String playlistId, String token) async {
+Future<Map<String, dynamic>> _fetchSpotifyTracks(
+  String playlistId,
+  String token,
+) async {
   final tracks = <Map<String, String>>[];
   String playlistName = 'Spotify Playlist';
   String coverUrl = '';
-  String? nextUrl = 'https://api.spotify.com/v1/playlists/$playlistId/tracks?limit=50&fields=next,items(track(name,artists(name)))';
+  String? nextUrl =
+      'https://api.spotify.com/v1/playlists/$playlistId/tracks?limit=50&fields=next,items(track(name,artists(name)))';
 
   // Fetch playlist name + cover first
   try {
-    final metaRes = await http.get(
-      Uri.parse('https://api.spotify.com/v1/playlists/$playlistId?fields=name,images'),
-      headers: {'Authorization': 'Bearer $token'},
-    ).timeout(const Duration(seconds: 10));
+    final metaRes = await http
+        .get(
+          Uri.parse(
+            'https://api.spotify.com/v1/playlists/$playlistId?fields=name,images',
+          ),
+          headers: {'Authorization': 'Bearer $token'},
+        )
+        .timeout(const Duration(seconds: 10));
     if (metaRes.statusCode == 200) {
       final j = jsonDecode(metaRes.body) as Map<String, dynamic>;
       playlistName = j['name']?.toString() ?? playlistName;
@@ -172,10 +196,9 @@ Future<Map<String, dynamic>> _fetchSpotifyTracks(String playlistId, String token
   // Paginate through all tracks
   while (nextUrl != null) {
     try {
-      final res = await http.get(
-        Uri.parse(nextUrl),
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 10));
+      final res = await http
+          .get(Uri.parse(nextUrl), headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 10));
 
       if (res.statusCode != 200) break;
       final page = jsonDecode(res.body) as Map<String, dynamic>;
@@ -185,7 +208,8 @@ Future<Map<String, dynamic>> _fetchSpotifyTracks(String playlistId, String token
         final track = item['track'] as Map<String, dynamic>?;
         if (track == null) continue;
         final name = track['name']?.toString() ?? '';
-        final artists = (track['artists'] as List<dynamic>?)
+        final artists =
+            (track['artists'] as List<dynamic>?)
                 ?.map((a) => a['name']?.toString() ?? '')
                 .where((s) => s.isNotEmpty)
                 .join(', ') ??
@@ -200,11 +224,7 @@ Future<Map<String, dynamic>> _fetchSpotifyTracks(String playlistId, String token
     }
   }
 
-  return {
-    'name': playlistName,
-    'tracks': tracks,
-    'image': coverUrl,
-  };
+  return {'name': playlistName, 'tracks': tracks, 'image': coverUrl};
 }
 
 // ─── YouTube Music Import ──────────────────────────────────────────────────────
@@ -267,7 +287,8 @@ Future<ImportResult> importFromYouTube(
         }
       }
 
-      if (i % 5 == 0 && i != 0) await Future.delayed(const Duration(milliseconds: 300));
+      if (i % 5 == 0 && i != 0)
+        await Future.delayed(const Duration(milliseconds: 300));
     }
 
     final id = 'youtube_${playlist.id.value}';
@@ -287,7 +308,9 @@ Future<ImportResult> importFromYouTube(
       notFoundTitles: notFound,
     );
   } catch (e) {
-    return ImportResult.failed('Import failed: ${e.toString().split('\n').first}');
+    return ImportResult.failed(
+      'Import failed: ${e.toString().split('\n').first}',
+    );
   } finally {
     yt.close();
   }
@@ -301,8 +324,14 @@ String? _extractYouTubePlaylistId(String url) {
 
 String _cleanYouTubeTitle(String title) {
   return title
-      .replaceAll(RegExp(r'\(Official (Music )?Video\)', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\[Official (Music )?Video\]', caseSensitive: false), '')
+      .replaceAll(
+        RegExp(r'\(Official (Music )?Video\)', caseSensitive: false),
+        '',
+      )
+      .replaceAll(
+        RegExp(r'\[Official (Music )?Video\]', caseSensitive: false),
+        '',
+      )
       .replaceAll(RegExp(r'\(Lyric(s)? Video\)', caseSensitive: false), '')
       .replaceAll(RegExp(r'\[Lyric(s)? Video\]', caseSensitive: false), '')
       .replaceAll(RegExp(r'\(Official Audio\)', caseSensitive: false), '')
@@ -321,7 +350,9 @@ ImportSource detectImportSource(String url) {
   if (url.contains('spotify.com') || url.startsWith('spotify:')) {
     return ImportSource.spotify;
   }
-  if (url.contains('youtube.com') || url.contains('youtu.be') || url.contains('music.youtube.com')) {
+  if (url.contains('youtube.com') ||
+      url.contains('youtu.be') ||
+      url.contains('music.youtube.com')) {
     return ImportSource.youtube;
   }
   return ImportSource.unknown;
@@ -338,6 +369,8 @@ Future<ImportResult> importPlaylist(
     case ImportSource.youtube:
       return importFromYouTube(url, onProgress: onProgress);
     case ImportSource.unknown:
-      return ImportResult.failed('Unsupported URL. Please use a Spotify or YouTube Music playlist link.');
+      return ImportResult.failed(
+        'Unsupported URL. Please use a Spotify or YouTube Music playlist link.',
+      );
   }
 }

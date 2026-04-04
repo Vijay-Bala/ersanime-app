@@ -17,7 +17,11 @@ const _musicSecondary = Color(0xFF9B00FF);
 class MusicArtistScreen extends StatefulWidget {
   final String artistId;
   final String artistName;
-  const MusicArtistScreen({super.key, required this.artistId, required this.artistName});
+  const MusicArtistScreen({
+    super.key,
+    required this.artistId,
+    required this.artistName,
+  });
 
   @override
   State<MusicArtistScreen> createState() => _MusicArtistScreenState();
@@ -35,12 +39,23 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final artist = await music_api.getArtistDetail(widget.artistId);
-      if (mounted) setState(() { _artist = artist; _loading = false; });
+      if (mounted)
+        setState(() {
+          _artist = artist;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = e.toString(); });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error = e.toString();
+        });
     }
   }
 
@@ -51,15 +66,29 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _musicPrimary))
           : _error != null
-              ? Center(child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Could not load artist', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp)),
-                    SizedBox(height: 12.h),
-                    ElevatedButton(onPressed: _load, style: ElevatedButton.styleFrom(backgroundColor: _musicPrimary), child: const Text('Retry')),
-                  ],
-                ))
-              : _buildContent(),
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Could not load artist',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  ElevatedButton(
+                    onPressed: _load,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _musicPrimary,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : _buildContent(),
     );
   }
 
@@ -73,7 +102,14 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 8.h),
-                child: Text('Top Songs', style: TextStyle(color: AppTheme.textPrimary, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                child: Text(
+                  'Top Songs',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
             SliverList(
@@ -81,8 +117,16 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
                 (_, i) => SongListTile(
                   song: artist.topSongs[i],
                   onTap: () {
-                    context.read<MusicPlayerService>().playPlaylist(artist.topSongs, startIndex: i);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPlayerScreen()));
+                    context.read<MusicPlayerService>().playPlaylist(
+                      artist.topSongs,
+                      startIndex: i,
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MusicPlayerScreen(),
+                      ),
+                    );
                   },
                 ).animate().fadeIn(delay: Duration(milliseconds: i * 30)),
                 childCount: artist.topSongs.length,
@@ -93,7 +137,14 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 12.h),
-                child: Text('Albums', style: TextStyle(color: AppTheme.textPrimary, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                child: Text(
+                  'Albums',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
             SliverToBoxAdapter(
@@ -107,7 +158,12 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
                   itemBuilder: (_, i) {
                     final album = artist.albums[i];
                     return GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MusicAlbumScreen(album: album))),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MusicAlbumScreen(album: album),
+                        ),
+                      ),
                       child: SizedBox(
                         width: 130.w,
                         child: Column(
@@ -117,14 +173,43 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
                               borderRadius: BorderRadius.circular(12),
                               child: CachedNetworkImage(
                                 imageUrl: album.imageUrl,
-                                width: 130.w, height: 130.w, fit: BoxFit.cover,
-                                placeholder: (_, __) => Container(color: AppTheme.darkCard, child: const Icon(Icons.album_rounded, color: _musicSecondary)),
-                                errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard, child: const Icon(Icons.album_rounded, color: _musicSecondary)),
+                                width: 130.w,
+                                height: 130.w,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => Container(
+                                  color: AppTheme.darkCard,
+                                  child: const Icon(
+                                    Icons.album_rounded,
+                                    color: _musicSecondary,
+                                  ),
+                                ),
+                                errorWidget: (_, __, ___) => Container(
+                                  color: AppTheme.darkCard,
+                                  child: const Icon(
+                                    Icons.album_rounded,
+                                    color: _musicSecondary,
+                                  ),
+                                ),
                               ),
                             ),
                             SizedBox(height: 6.h),
-                            Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppTheme.textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w600)),
-                            Text(album.year, style: TextStyle(color: AppTheme.textSecondary, fontSize: 11.sp)),
+                            Text(
+                              album.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              album.year,
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 11.sp,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -151,12 +236,20 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
           fit: StackFit.expand,
           children: [
             if (artist.imageUrl.isNotEmpty)
-              CachedNetworkImage(imageUrl: artist.imageUrl, fit: BoxFit.cover,
-                placeholder: (_, __) => Container(color: const Color(0xFF1A0030)),
+              CachedNetworkImage(
+                imageUrl: artist.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) =>
+                    Container(color: const Color(0xFF1A0030)),
                 errorWidget: (_, __, ___) => Container(
                   color: const Color(0xFF1A0030),
-                  child: Icon(Icons.person_rounded, color: _musicPrimary, size: 80.sp),
-                )),
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: _musicPrimary,
+                    size: 80.sp,
+                  ),
+                ),
+              ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -167,24 +260,45 @@ class _MusicArtistScreenState extends State<MusicArtistScreen> {
               ),
             ),
             Positioned(
-              bottom: 16, left: 16, right: 16,
+              bottom: 16,
+              left: 16,
+              right: 16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(artist.name, style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.w900)),
+                  Text(
+                    artist.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   if (artist.topSongs.isNotEmpty)
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _musicPrimary,
                         side: const BorderSide(color: _musicPrimary, width: 2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
                       icon: const Icon(Icons.shuffle_rounded),
-                      label: const Text('Shuffle Play', style: TextStyle(fontWeight: FontWeight.w700)),
+                      label: const Text(
+                        'Shuffle Play',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                       onPressed: () {
                         final shuffled = [...artist.topSongs]..shuffle();
-                        context.read<MusicPlayerService>().playPlaylist(shuffled);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPlayerScreen()));
+                        context.read<MusicPlayerService>().playPlaylist(
+                          shuffled,
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MusicPlayerScreen(),
+                          ),
+                        );
                       },
                     ),
                 ],

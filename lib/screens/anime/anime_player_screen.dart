@@ -19,27 +19,58 @@ final String _kUserAgent = Platform.isIOS
           'Chrome/124.0.0.0 Mobile Safari/537.36';
 
 const _kAllowedHosts = {
-  'vidnest.fun', 'nhdapi.xyz',
-  'allaniurl.xyz', '9animetv.to',
-  'animepahe.ru', 'animepahe.com', 'animepahe.org',
-  'kwik.si', 'kwik.cx',
-  'filemoon.sx', 'filemoon.to',
+  'vidnest.fun',
+  'nhdapi.xyz',
+  'allaniurl.xyz',
+  '9animetv.to',
+  'animepahe.ru',
+  'animepahe.com',
+  'animepahe.org',
+  'kwik.si',
+  'kwik.cx',
+  'filemoon.sx',
+  'filemoon.to',
   'mp4upload.com',
-  'streamwish.com', 'streamwish.to',
-  'vidstreaming.io', 'gogoanime.gg',
+  'streamwish.com',
+  'streamwish.to',
+  'vidstreaming.io',
+  'gogoanime.gg',
 };
 
 const _kAdHosts = {
-  'adexchangeclear.com', 'usrpubtrk.com', 'acscdn.com',
-  'ieenhijxbigyt.space', 'cloudnestra.com', 'vsembed.ru',
-  'doubleclick.net', 'googlesyndication.com', 'googletagmanager.com',
-  'googletagservices.com', 'google-analytics.com', 'adservice.google.com',
-  'amazon-adsystem.com', 'outbrain.com', 'taboola.com',
-  'popads.net', 'popcash.net', 'propellerads.com', 'adsterra.com',
-  'trafficjunky.com', 'exoclick.com', 'juicyads.com',
-  'trafficfactory.biz', 'hilltopads.net', 'ero-advertising.com',
-  'adnxs.com', 'advertising.com', 'criteo.com', 'rubiconproject.com',
-  'openx.net', 'pubmatic.com', 'smartadserver.com', 'imasdk.googleapis.com',
+  'adexchangeclear.com',
+  'usrpubtrk.com',
+  'acscdn.com',
+  'ieenhijxbigyt.space',
+  'cloudnestra.com',
+  'vsembed.ru',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googletagmanager.com',
+  'googletagservices.com',
+  'google-analytics.com',
+  'adservice.google.com',
+  'amazon-adsystem.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'popcash.net',
+  'propellerads.com',
+  'adsterra.com',
+  'trafficjunky.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficfactory.biz',
+  'hilltopads.net',
+  'ero-advertising.com',
+  'adnxs.com',
+  'advertising.com',
+  'criteo.com',
+  'rubiconproject.com',
+  'openx.net',
+  'pubmatic.com',
+  'smartadserver.com',
+  'imasdk.googleapis.com',
   'disable-devtool',
 };
 
@@ -179,11 +210,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _playerAlive = false;
     });
     _cancelAutoAdvance();
-    _webCtrl?.loadUrl(
-      urlRequest: URLRequest(
-        url: WebUri(_sources[i]),
-      ),
-    );
+    _webCtrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_sources[i])));
   }
 
   void _playEpisode(Episode ep) {
@@ -195,11 +222,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
     _buildSources();
     context.read<WatchlistService>().markWatched(widget.anime.id, ep.number);
-    _webCtrl?.loadUrl(
-      urlRequest: URLRequest(
-        url: WebUri(_currentUrl),
-      ),
-    );
+    _webCtrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_currentUrl)));
   }
 
   void _showControls() {
@@ -254,13 +277,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // ── WebView built ONCE in initState, referenced here ────────────────────
   Widget _buildWebView() {
     return InAppWebView(
-      initialUrlRequest: URLRequest(
-        url: WebUri(_currentUrl),
-      ),
+      initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
       initialSettings: InAppWebViewSettings(
         userAgent: _kUserAgent,
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
+        allowsPictureInPictureMediaPlayback: true,
         javaScriptEnabled: true,
         supportMultipleWindows: true,
         javaScriptCanOpenWindowsAutomatically: false,
@@ -417,12 +439,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
         })();
       ''',
       );
-      
+
       if (result == 'cloudflare') {
-        debugPrint('[ANIME] Cloudflare verification detected. Halting auto-skip timer to let user solve it.');
+        debugPrint(
+          '[ANIME] Cloudflare verification detected. Halting auto-skip timer to let user solve it.',
+        );
         _cancelAutoAdvance(updateState: true);
       } else if (result == 'error') {
-        debugPrint('[ANIME] Server reported error page natively. Skipping automatically.');
+        debugPrint(
+          '[ANIME] Server reported error page natively. Skipping automatically.',
+        );
         _cancelAutoAdvance();
         Future.microtask(_goNextSource);
       } else if (result == 'video') {

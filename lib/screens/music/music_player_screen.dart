@@ -66,7 +66,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
 
   void _cycleSpeed(MusicPlayerService player) {
     const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-    final currentIdx = speeds.indexWhere((s) => (s - _playbackSpeed).abs() < 0.01);
+    final currentIdx = speeds.indexWhere(
+      (s) => (s - _playbackSpeed).abs() < 0.01,
+    );
     final nextIdx = (currentIdx + 1) % speeds.length;
     setState(() => _playbackSpeed = speeds[nextIdx]);
     player.setSpeed(_playbackSpeed);
@@ -107,25 +109,38 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
 
   String _fullLangName(String lang) {
     switch (lang.toLowerCase()) {
-      case 'hindi':     return 'Hindi (हिन्दी)';
-      case 'telugu':    return 'Telugu (తెలుగు)';
-      case 'malayalam': return 'Malayalam (മലയാളം)';
-      case 'kannada':   return 'Kannada (ಕನ್ನಡ)';
-      case 'punjabi':   return 'Punjabi (ਪੰਜਾਬੀ)';
-      case 'bengali':   return 'Bengali (বাংলা)';
-      case 'marathi':   return 'Marathi (मराठी)';
-      case 'gujarati':  return 'Gujarati (ગુજરાતી)';
-      case 'odia':      return 'Odia (ଓଡ଼ିଆ)';
-      case 'bhojpuri':  return 'Bhojpuri';
-      case 'urdu':      return 'Urdu (اردو)';
-      case 'english':   return 'English';
-      case 'tamil':     return 'Tamil / Thanglish';
-      default:          return lang[0].toUpperCase() + lang.substring(1);
+      case 'hindi':
+        return 'Hindi (हिन्दी)';
+      case 'telugu':
+        return 'Telugu (తెలుగు)';
+      case 'malayalam':
+        return 'Malayalam (മലയാളം)';
+      case 'kannada':
+        return 'Kannada (ಕನ್ನಡ)';
+      case 'punjabi':
+        return 'Punjabi (ਪੰਜਾਬੀ)';
+      case 'bengali':
+        return 'Bengali (বাংলা)';
+      case 'marathi':
+        return 'Marathi (मराठी)';
+      case 'gujarati':
+        return 'Gujarati (ગુજરાતી)';
+      case 'odia':
+        return 'Odia (ଓଡ଼ିଆ)';
+      case 'bhojpuri':
+        return 'Bhojpuri';
+      case 'urdu':
+        return 'Urdu (اردو)';
+      case 'english':
+        return 'English';
+      case 'tamil':
+        return 'Tamil / Thanglish';
+      default:
+        return lang[0].toUpperCase() + lang.substring(1);
     }
   }
 
   Future<void> _updatePalette(Song song) async {
-
     if (_lastSongForPalette?.id == song.id) return;
     _lastSongForPalette = song;
     if (song.imageUrl.isEmpty) return;
@@ -136,21 +151,35 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
       );
       if (!mounted) return;
       setState(() {
-        _bgColor1 = (gen.dominantColor?.color ?? gen.vibrantColor?.color ?? const Color(0xFF1A0030)).withOpacity(0.9);
+        _bgColor1 =
+            (gen.dominantColor?.color ??
+                    gen.vibrantColor?.color ??
+                    const Color(0xFF1A0030))
+                .withOpacity(0.9);
         _bgColor2 = (gen.darkMutedColor?.color ?? AppTheme.darkBg);
       });
     } catch (_) {}
   }
 
   Future<void> _loadLyrics(Song song) async {
-    if (_lyrics != null && _lastSongForPalette?.id == song.id && _lyrics!.hasLyrics) return;
+    if (_lyrics != null &&
+        _lastSongForPalette?.id == song.id &&
+        _lyrics!.hasLyrics)
+      return;
     if (song.lyricsId == null || song.lyricsId!.isEmpty) {
       setState(() => _lyrics = SongLyrics.empty());
       return;
     }
-    setState(() { _loadingLyrics = true; _lyrics = null; });
+    setState(() {
+      _loadingLyrics = true;
+      _lyrics = null;
+    });
     final l = await music_api.getLyrics(song);
-    if (mounted) setState(() { _lyrics = l; _loadingLyrics = false; });
+    if (mounted)
+      setState(() {
+        _lyrics = l;
+        _loadingLyrics = false;
+      });
   }
 
   @override
@@ -175,17 +204,27 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
 
         // Automatic lyric scrolling
         if (_showLyrics && _lyrics != null && _lyrics!.lines.isNotEmpty) {
-          final idx = _lyrics!.lines.lastIndexWhere((l) => l.time <= player.position);
+          final idx = _lyrics!.lines.lastIndexWhere(
+            (l) => l.time <= player.position,
+          );
           if (idx != -1 && _lyricsScrollCtrl.hasClients) {
-             WidgetsBinding.instance.addPostFrameCallback((_) {
-               if (_lyricsScrollCtrl.hasClients) {
-                 final offset = (idx * 45.0) - (MediaQuery.of(context).size.height * 0.25);
-                 final target = offset.clamp(0.0, _lyricsScrollCtrl.position.maxScrollExtent);
-                 if ((_lyricsScrollCtrl.offset - target).abs() > 5.0) {
-                   _lyricsScrollCtrl.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-                 }
-               }
-             });
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_lyricsScrollCtrl.hasClients) {
+                final offset =
+                    (idx * 45.0) - (MediaQuery.of(context).size.height * 0.25);
+                final target = offset.clamp(
+                  0.0,
+                  _lyricsScrollCtrl.position.maxScrollExtent,
+                );
+                if ((_lyricsScrollCtrl.offset - target).abs() > 5.0) {
+                  _lyricsScrollCtrl.animateTo(
+                    target,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              }
+            });
           }
         }
 
@@ -205,22 +244,38 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                 ),
               ),
               // Blur circles for depth
-              Positioned(top: -80, left: -60,
-                child: Container(width: 250.w, height: 250.w,
-                  decoration: BoxDecoration(shape: BoxShape.circle,
-                    color: _musicPrimary.withOpacity(0.08)))),
-              Positioned(bottom: 100, right: -80,
-                child: Container(width: 200.w, height: 200.w,
-                  decoration: BoxDecoration(shape: BoxShape.circle,
-                    color: _musicSecondary.withOpacity(0.08)))),
+              Positioned(
+                top: -80,
+                left: -60,
+                child: Container(
+                  width: 250.w,
+                  height: 250.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _musicPrimary.withOpacity(0.08),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 100,
+                right: -80,
+                child: Container(
+                  width: 200.w,
+                  height: 200.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _musicSecondary.withOpacity(0.08),
+                  ),
+                ),
+              ),
 
               // Main content
               SafeArea(
                 child: song == null
                     ? _buildEmpty()
                     : _showLyrics
-                        ? _buildLyricsView(song, player)
-                        : _buildPlayerView(song, player),
+                    ? _buildLyricsView(song, player)
+                    : _buildPlayerView(song, player),
               ),
             ],
           ),
@@ -233,9 +288,16 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.music_off_rounded, color: AppTheme.textSecondary, size: 64.sp),
+        Icon(
+          Icons.music_off_rounded,
+          color: AppTheme.textSecondary,
+          size: 64.sp,
+        ),
         SizedBox(height: 16.h),
-        Text('Nothing playing', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16.sp)),
+        Text(
+          'Nothing playing',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 16.sp),
+        ),
         SizedBox(height: 8.h),
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -273,15 +335,34 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
             child: Column(
               children: [
-                Text('Now Playing', style: TextStyle(color: Colors.white60, fontSize: 11.sp, letterSpacing: 1.5)),
-                Text(song.album, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                Text(
+                  'Now Playing',
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 11.sp,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                Text(
+                  song.album,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -311,7 +392,11 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: _bgColor1.withOpacity(0.6), blurRadius: 40, spreadRadius: 10),
+              BoxShadow(
+                color: _bgColor1.withOpacity(0.6),
+                blurRadius: 40,
+                spreadRadius: 10,
+              ),
               BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20),
             ],
           ),
@@ -320,13 +405,31 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                 ? CachedNetworkImage(
                     imageUrl: song.imageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: AppTheme.darkCard,
-                      child: Icon(Icons.music_note_rounded, color: _musicPrimary, size: 80.sp)),
-                    errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard,
-                      child: Icon(Icons.music_note_rounded, color: _musicPrimary, size: 80.sp)),
+                    placeholder: (_, __) => Container(
+                      color: AppTheme.darkCard,
+                      child: Icon(
+                        Icons.music_note_rounded,
+                        color: _musicPrimary,
+                        size: 80.sp,
+                      ),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: AppTheme.darkCard,
+                      child: Icon(
+                        Icons.music_note_rounded,
+                        color: _musicPrimary,
+                        size: 80.sp,
+                      ),
+                    ),
                   )
-                : Container(color: AppTheme.darkCard,
-                    child: Icon(Icons.music_note_rounded, color: _musicPrimary, size: 80.sp)),
+                : Container(
+                    color: AppTheme.darkCard,
+                    child: Icon(
+                      Icons.music_note_rounded,
+                      color: _musicPrimary,
+                      size: 80.sp,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -349,7 +452,11 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                       song.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     SizedBox(height: 4.h),
                     Row(
@@ -359,19 +466,34 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                             song.artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13.sp,
+                            ),
                           ),
                         ),
                         if (song.isTamil)
                           Container(
                             margin: EdgeInsets.only(left: 8.w),
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 3.h,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFF6B35).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
+                              border: Border.all(
+                                color: const Color(0xFFFF6B35).withOpacity(0.5),
+                              ),
                             ),
-                            child: Text('तமிழ்', style: TextStyle(color: const Color(0xFFFF6B35), fontSize: 10.sp, fontWeight: FontWeight.w800)),
+                            child: Text(
+                              'तமிழ்',
+                              style: TextStyle(
+                                color: const Color(0xFFFF6B35),
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -385,7 +507,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                     icon: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: Icon(
-                        liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        liked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
                         key: ValueKey(liked),
                         color: liked ? _musicPrimary : Colors.white70,
                         size: 24.sp,
@@ -418,8 +542,14 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_formatDuration(player.position), style: TextStyle(color: Colors.white60, fontSize: 11.sp)),
-                Text(_formatDuration(player.duration), style: TextStyle(color: Colors.white60, fontSize: 11.sp)),
+                Text(
+                  _formatDuration(player.position),
+                  style: TextStyle(color: Colors.white60, fontSize: 11.sp),
+                ),
+                Text(
+                  _formatDuration(player.duration),
+                  style: TextStyle(color: Colors.white60, fontSize: 11.sp),
+                ),
               ],
             ),
           ),
@@ -430,13 +560,20 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             children: [
               // Shuffle
               IconButton(
-                icon: Icon(Icons.shuffle_rounded,
-                  color: player.isShuffled ? _musicPrimary : Colors.white70, size: 22.sp),
+                icon: Icon(
+                  Icons.shuffle_rounded,
+                  color: player.isShuffled ? _musicPrimary : Colors.white70,
+                  size: 22.sp,
+                ),
                 onPressed: player.toggleShuffle,
               ),
               // Previous
               IconButton(
-                icon: Icon(Icons.skip_previous_rounded, color: Colors.white, size: 32.sp),
+                icon: Icon(
+                  Icons.skip_previous_rounded,
+                  color: Colors.white,
+                  size: 32.sp,
+                ),
                 onPressed: player.skipPrevious,
               ),
               // Play/Pause
@@ -454,13 +591,22 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: _musicPrimary.withOpacity(0.5), blurRadius: 20, spreadRadius: 2),
+                      BoxShadow(
+                        color: _musicPrimary.withOpacity(0.5),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
                     ],
                   ),
                   child: player.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
                       : Icon(
-                          player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          player.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
                           color: Colors.white,
                           size: 36.sp,
                         ),
@@ -468,7 +614,11 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
               ),
               // Next
               IconButton(
-                icon: Icon(Icons.skip_next_rounded, color: Colors.white, size: 32.sp),
+                icon: Icon(
+                  Icons.skip_next_rounded,
+                  color: Colors.white,
+                  size: 32.sp,
+                ),
                 onPressed: player.skipNext,
               ),
               // Repeat
@@ -477,7 +627,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                   player.repeatMode == PlayerRepeatMode.one
                       ? Icons.repeat_one_rounded
                       : Icons.repeat_rounded,
-                  color: player.repeatMode != PlayerRepeatMode.none ? _musicPrimary : Colors.white70,
+                  color: player.repeatMode != PlayerRepeatMode.none
+                      ? _musicPrimary
+                      : Colors.white70,
                   size: 22.sp,
                 ),
                 onPressed: player.toggleRepeat,
@@ -490,12 +642,19 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // -10 sec
-              _seekChip(Icons.replay_10_rounded, '-10s', () => _seekRelative(const Duration(seconds: -10), player)),
+              _seekChip(
+                Icons.replay_10_rounded,
+                '-10s',
+                () => _seekRelative(const Duration(seconds: -10), player),
+              ),
               // Speed button
               GestureDetector(
                 onTap: () => _cycleSpeed(player),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 6.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white10,
                     borderRadius: BorderRadius.circular(20.r),
@@ -504,7 +663,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                   child: Text(
                     _speedLabel(),
                     style: TextStyle(
-                      color: (_playbackSpeed - 1.0).abs() > 0.01 ? _musicPrimary : Colors.white60,
+                      color: (_playbackSpeed - 1.0).abs() > 0.01
+                          ? _musicPrimary
+                          : Colors.white60,
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -512,7 +673,11 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                 ),
               ),
               // +10 sec
-              _seekChip(Icons.forward_10_rounded, '+10s', () => _seekRelative(const Duration(seconds: 10), player)),
+              _seekChip(
+                Icons.forward_10_rounded,
+                '+10s',
+                () => _seekRelative(const Duration(seconds: 10), player),
+              ),
             ],
           ),
           SizedBox(height: 16.h),
@@ -522,8 +687,15 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             children: [
               TextButton.icon(
                 onPressed: () => setState(() => _showLyrics = true),
-                icon: Icon(Icons.lyrics_rounded, size: 16.sp, color: Colors.white60),
-                label: Text('Lyrics', style: TextStyle(color: Colors.white60, fontSize: 13.sp)),
+                icon: Icon(
+                  Icons.lyrics_rounded,
+                  size: 16.sp,
+                  color: Colors.white60,
+                ),
+                label: Text(
+                  'Lyrics',
+                  style: TextStyle(color: Colors.white60, fontSize: 13.sp),
+                ),
               ),
             ],
           ),
@@ -539,10 +711,28 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 16,
+                  ),
                   SizedBox(width: 8.w),
-                  Expanded(child: Text(player.error!, style: TextStyle(color: Colors.redAccent, fontSize: 11.sp))),
-                  TextButton(onPressed: player.retry, child: const Text('Retry', style: TextStyle(color: Colors.redAccent))),
+                  Expanded(
+                    child: Text(
+                      player.error!,
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: player.retry,
+                    child: const Text(
+                      'Retry',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -561,13 +751,24 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => setState(() => _showLyrics = false),
               ),
               Expanded(
                 child: Column(
                   children: [
-                    Text('Lyrics', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16.sp)),
+                    Text(
+                      'Lyrics',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16.sp,
+                      ),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -604,13 +805,31 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             width: 80.w,
             height: 80.w,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: AppTheme.darkCard, child: const Icon(Icons.music_note_rounded, color: _musicPrimary)),
-            errorWidget: (_, __, ___) => Container(color: AppTheme.darkCard, child: const Icon(Icons.music_note_rounded, color: _musicPrimary)),
+            placeholder: (_, __) => Container(
+              color: AppTheme.darkCard,
+              child: const Icon(Icons.music_note_rounded, color: _musicPrimary),
+            ),
+            errorWidget: (_, __, ___) => Container(
+              color: AppTheme.darkCard,
+              child: const Icon(Icons.music_note_rounded, color: _musicPrimary),
+            ),
           ),
         ),
         SizedBox(height: 8.h),
-        Text(song.title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text(song.artist, style: TextStyle(color: Colors.white60, fontSize: 12.sp)),
+        Text(
+          song.title,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 14.sp,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          song.artist,
+          style: TextStyle(color: Colors.white60, fontSize: 12.sp),
+        ),
         SizedBox(height: 8.h),
         // Language note banner for non-Tamil/English songs
         if (_isOtherLanguageSong(song))
@@ -620,17 +839,27 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
             decoration: BoxDecoration(
               color: const Color(0xFF9B00FF).withOpacity(0.12),
               borderRadius: BorderRadius.circular(10.r),
-              border: Border.all(color: const Color(0xFF9B00FF).withOpacity(0.35)),
+              border: Border.all(
+                color: const Color(0xFF9B00FF).withOpacity(0.35),
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, color: const Color(0xFFBB80FF), size: 14.sp),
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: const Color(0xFFBB80FF),
+                  size: 14.sp,
+                ),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
-                    'Lyrics shown in ${_fullLangName(song.language)} script. '  
+                    'Lyrics shown in ${_fullLangName(song.language)} script. '
                     'English/Thanglish versions may not be available.',
-                    style: TextStyle(color: const Color(0xFFBB80FF), fontSize: 11.sp, height: 1.4),
+                    style: TextStyle(
+                      color: const Color(0xFFBB80FF),
+                      fontSize: 11.sp,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -640,74 +869,100 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
         // Lyrics body
         Expanded(
           child: _loadingLyrics
-              ? const Center(child: CircularProgressIndicator(color: _musicPrimary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: _musicPrimary),
+                )
               : (_lyrics == null || !_lyrics!.hasLyrics)
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lyrics_rounded, color: AppTheme.textSecondary, size: 40.sp),
-                          SizedBox(height: 12.h),
-                          Text(
-                            'Lyrics not available for this song',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14.sp),
-                          ),
-                          if (_isOtherLanguageSong(song)) ...[
-                            SizedBox(height: 6.h),
-                            Text(
-                              'Try searching on LyricsMint or Raaga for ${_fullLangName(song.language)} lyrics',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.6), fontSize: 11.sp),
-                            ),
-                          ],
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lyrics_rounded,
+                        color: AppTheme.textSecondary,
+                        size: 40.sp,
                       ),
-                    )
-                      : _lyrics!.lines.isNotEmpty 
-                      ? ListView.builder(
-                          controller: _lyricsScrollCtrl,
-                          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: MediaQuery.of(context).size.height * 0.3),
-                          itemCount: _lyrics!.lines.length,
-                          itemBuilder: (context, index) {
-                            final line = _lyrics!.lines[index];
-                            final isActive = _lyrics!.lines.lastIndexWhere((l) => l.time <= player.position) == index;
-                            
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: isActive ? 6.h : 2.h),
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 300),
-                                style: TextStyle(
-                                  color: isActive ? Colors.white : Colors.white38,
-                                  fontSize: isActive ? 18.sp : 14.sp,
-                                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                                  letterSpacing: isActive ? 0.5 : 0.0,
-                                  height: 1.4,
-                                ),
-                                child: Text(
-                                  line.text,
-                                  textAlign: TextAlign.center,
-                                  softWrap: true,
-                                  overflow: TextOverflow.visible,
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : SingleChildScrollView(
-                          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
-                          child: Text(
-                            _lyrics!.text,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 16.sp,
-                              height: 2.0,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.3,
-                            ),
+                      SizedBox(height: 12.h),
+                      Text(
+                        'Lyrics not available for this song',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      if (_isOtherLanguageSong(song)) ...[
+                        SizedBox(height: 6.h),
+                        Text(
+                          'Try searching on LyricsMint or Raaga for ${_fullLangName(song.language)} lyrics',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary.withOpacity(0.6),
+                            fontSize: 11.sp,
                           ),
                         ),
+                      ],
+                    ],
+                  ),
+                )
+              : _lyrics!.lines.isNotEmpty
+              ? ListView.builder(
+                  controller: _lyricsScrollCtrl,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: MediaQuery.of(context).size.height * 0.3,
+                  ),
+                  itemCount: _lyrics!.lines.length,
+                  itemBuilder: (context, index) {
+                    final line = _lyrics!.lines[index];
+                    final isActive =
+                        _lyrics!.lines.lastIndexWhere(
+                          (l) => l.time <= player.position,
+                        ) ==
+                        index;
+
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isActive ? 6.h : 2.h,
+                      ),
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 300),
+                        style: TextStyle(
+                          color: isActive ? Colors.white : Colors.white38,
+                          fontSize: isActive ? 18.sp : 14.sp,
+                          fontWeight: isActive
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          letterSpacing: isActive ? 0.5 : 0.0,
+                          height: 1.4,
+                        ),
+                        child: Text(
+                          line.text,
+                          textAlign: TextAlign.center,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: 8.h,
+                  ),
+                  child: Text(
+                    _lyrics!.text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 16.sp,
+                      height: 2.0,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
         ),
         // Mini playback controls at bottom of lyrics view
         Padding(
@@ -718,11 +973,18 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _seekChip(Icons.replay_10_rounded, '-10s', () => _seekRelative(const Duration(seconds: -10), player)),
+                  _seekChip(
+                    Icons.replay_10_rounded,
+                    '-10s',
+                    () => _seekRelative(const Duration(seconds: -10), player),
+                  ),
                   GestureDetector(
                     onTap: () => _cycleSpeed(player),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 6.h,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white10,
                         borderRadius: BorderRadius.circular(20.r),
@@ -731,14 +993,20 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                       child: Text(
                         _speedLabel(),
                         style: TextStyle(
-                          color: (_playbackSpeed - 1.0).abs() > 0.01 ? _musicPrimary : Colors.white60,
+                          color: (_playbackSpeed - 1.0).abs() > 0.01
+                              ? _musicPrimary
+                              : Colors.white60,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  _seekChip(Icons.forward_10_rounded, '+10s', () => _seekRelative(const Duration(seconds: 10), player)),
+                  _seekChip(
+                    Icons.forward_10_rounded,
+                    '+10s',
+                    () => _seekRelative(const Duration(seconds: 10), player),
+                  ),
                 ],
               ),
               SizedBox(height: 8.h),
@@ -747,25 +1015,39 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
-                    icon: Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28.sp),
+                    icon: Icon(
+                      Icons.skip_previous_rounded,
+                      color: Colors.white,
+                      size: 28.sp,
+                    ),
                     onPressed: player.skipPrevious,
                   ),
                   GestureDetector(
                     onTap: player.togglePlayPause,
                     child: Container(
-                      width: 52.w, height: 52.w,
+                      width: 52.w,
+                      height: 52.w,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [_musicPrimary, _musicSecondary]),
+                        gradient: const LinearGradient(
+                          colors: [_musicPrimary, _musicSecondary],
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: Colors.white, size: 28.sp,
+                        player.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 28.sp,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.skip_next_rounded, color: Colors.white, size: 28.sp),
+                    icon: Icon(
+                      Icons.skip_next_rounded,
+                      color: Colors.white,
+                      size: 28.sp,
+                    ),
                     onPressed: player.skipNext,
                   ),
                 ],
@@ -792,7 +1074,14 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen>
           children: [
             Icon(icon, color: Colors.white70, size: 18.sp),
             SizedBox(width: 4.w),
-            Text(label, style: TextStyle(color: Colors.white70, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),

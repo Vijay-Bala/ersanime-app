@@ -208,8 +208,12 @@ List<String> getMovieEmbedUrls(int tmdbId, {bool dubbed = false}) {
 
 /// Returns embed URLs for a TV episode.
 /// Same priority as movies — keep first source, new regional fallbacks added.
-List<String> getTvEmbedUrls(int tmdbId, int season, int episode,
-    {bool dubbed = false}) {
+List<String> getTvEmbedUrls(
+  int tmdbId,
+  int season,
+  int episode, {
+  bool dubbed = false,
+}) {
   return [
     // ── Keep first — works great for Hollywood series ──
     'https://vidlink.pro/tv/$tmdbId/$season/$episode?autoplay=true&primaryColor=FF6B35',
